@@ -3,4 +3,5 @@ build/
 *.exe
 *.o
 include.zip
+src.zip
 old/
