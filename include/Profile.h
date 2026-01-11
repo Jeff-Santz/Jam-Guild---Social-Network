@@ -30,6 +30,7 @@ public:
     std::vector<Profile*>* getContacts();
     std::list<Post*>* getPosts();
     std::list<Post*>* getContactsPosts();
+    virtual std::string getRole() const { return "Profile"; }
 
 
     int getId();

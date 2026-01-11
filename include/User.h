@@ -10,6 +10,7 @@ public:
     User(std::string name);
     virtual ~User();
     virtual void addPost(Post* p);
+    virtual std::string getRole() const override { return "Standard User"; }
 };
 
 #endif

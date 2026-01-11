@@ -5,43 +5,36 @@
 #include "Page.h"
 #include "ProfileNotFound.h"
 #include <fstream>
+#include <map>
 
 using namespace std;
 
 //Construtores e Destrutores
-SocialNetwork::SocialNetwork (){
-  profiles = new Profile*[capacity];
-};
+SocialNetwork::SocialNetwork (){};
 
 SocialNetwork::~SocialNetwork() {
-  cout << "SocialNetwork destructor: " << profilesAmount << " profiles" << endl;
-  	for (int i = 0; i < profilesAmount; i++) {
-        delete profiles[i];
-    }
-    delete[] profiles;
+  cout << "SocialNetwork destructor: " << profiles.size() << " profiles" << endl;
   cout << "SocialNetwork deleted " << endl;
 }
 
 bool SocialNetwork::add (Profile* profile) {
-  if (this->profilesAmount < capacity) {
-    profiles[profilesAmount] = profile;
-    profilesAmount ++;
-    return true;
-  }
-  return false;
+  if(profile == nullptr) return false;
+
+  profiles.push_back(std::unique_ptr<Profile>(profile));
+  return true;
 }
 
 
 void SocialNetwork::print () {
   cout << "==================================" << endl;
-  cout << "Social Network: " << profilesAmount << " profiles" << endl;
+  cout << "Social Network: " << profiles.size() << " profiles" << endl;
   cout << "==================================" << endl;
-  if (profilesAmount == 0){
+  if (profiles.size() == 0){
     cout << "No profiles" << endl;
     cout << "==================================" << endl;
   } else {
-    for (int i = 0; i < profilesAmount; i++){
-      profiles[i]->print();
+    for (auto& u_ptr : profiles){
+      u_ptr->print();
       cout << "==================================" << endl;
     }
   }
@@ -50,45 +43,29 @@ void SocialNetwork::print () {
 
 
 void SocialNetwork::printStatistics() {
-  int VerifiedUsersAmount = 0;
-  int UsersAmount = 0;
-  int PagesAmount = 0;
-  int ProfilesAmount = 0;
-  for (int i = 0; i < this->profilesAmount; i++) {
-    if (dynamic_cast<VerifiedUser*>(profiles[i]) != NULL) {
-        VerifiedUsersAmount++;
-    }
-    else if (dynamic_cast<User*>(profiles[i]) != NULL) {
-        UsersAmount++;
-    }
-    else if (dynamic_cast<Page*>(profiles[i]) != NULL) {
-        PagesAmount++;
-    }
-    else {
-        ProfilesAmount++;
-    }
+  std::map<string, int> stats;
+
+  for (auto& u_ptr : profiles) {
+      stats[u_ptr->getRole()]++;
   }
 
-  cout << "VerifiedUser(s): " << VerifiedUsersAmount << endl;
-  cout << "NotVerifiedUser(s): " << UsersAmount << endl;
-  cout << "Page(s): " << PagesAmount << endl;
-  cout << "Profiles: " << ProfilesAmount << endl;
+  cout << "=== Statistics ===" << endl;
+  for (auto const& [role, count] : stats) {
+      cout << role << ": " << count << endl;
+  }
+  cout << "Total Profiles: " << profiles.size() << endl;
 }
 
 int SocialNetwork::getProfilesAmount() {
-  return this->profilesAmount;
-}
-
-Profile** SocialNetwork::getProfiles() {
-  return profiles;
+  return this->profiles.size();
 }
 
 Profile* SocialNetwork::getProfile(int id) {
-  for (int i=0; i < this->profilesAmount; i++) {
-    if (this->profiles[i]->getId() == id) {
-      return profiles[i];
+  for (auto& u_ptr : profiles) {
+    if (u_ptr->getId() == id) {
+        return u_ptr.get(); 
     }
-  }
+      }
   throw ProfileNotFound();
 }
 

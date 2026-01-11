@@ -17,6 +17,7 @@ public:
 
     void addPost(Post* p);
     VerifiedUser* getOwner();
+    virtual std::string getRole() const override { return "Page"; }
     virtual void print();
 };
 

@@ -14,6 +14,7 @@ public:
     VerifiedUser(std::string name);
 
     std::string getEmail();
+    virtual std::string getRole() const override { return "Verified User"; }
     virtual void print();
 };
 

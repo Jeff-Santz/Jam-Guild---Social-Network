@@ -2,18 +2,17 @@
 #define SOCIALNETWORK_H
 
 #include "Profile.h"
+#include <vector>
+#include <memory>
 
 class SocialNetwork {
 private:
-  Profile** profiles;
-  const int capacity = 100;
-  int profilesAmount = 0;
+  std::vector<std::unique_ptr<Profile>> profiles;
 
 public:
   SocialNetwork();
   ~SocialNetwork();
 
-  Profile** getProfiles();
   Profile* getProfile(int id); 
   int getProfilesAmount();
   bool add(Profile* profile);
