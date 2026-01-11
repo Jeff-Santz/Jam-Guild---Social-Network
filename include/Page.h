@@ -1,0 +1,23 @@
+#ifndef PAGE_H
+#define PAGE_H
+
+#include "Profile.h"
+#include "VerifiedUser.h"
+#include "Post.h"
+#include <iostream>
+#include <string>
+
+class Page : public Profile {
+private:
+    VerifiedUser* owner;
+
+public:
+    Page(std::string name, VerifiedUser* owner, int max);
+    virtual ~Page();
+
+    void addPost(Post* p);
+    VerifiedUser* getOwner();
+    virtual void print();
+};
+
+#endif
