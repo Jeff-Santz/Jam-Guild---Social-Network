@@ -2,23 +2,26 @@
 #define POST_H
 
 #include <string>
+#include <ctime>
 
 class Profile;  // Forward declaration
 
 class Post {
 private:
     std::string text;
-    int date;
+    std::time_t date;
     Profile* owner;
 
 public:
-    Post(std::string text, int date, Profile* owner); 
+    Post(std::string text, Profile* owner); 
+    Post(std::string text, std::time_t date, Profile* owner);
     ~Post();                                     
     void print();
     
     // Getters
     std::string getText();
-    int getDate();
+    std::time_t getDate();
+    std::string getFormattedDate();
     Profile* getOwner();
     // std::string getContent();
 

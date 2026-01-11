@@ -76,9 +76,9 @@ int main() {
                     cout << "O que voce esta pensando? ";
                     getline(cin, txt);
                     // Data hardcoded por enquanto, vamos mudar no proximo passo
-                    currentUser->addPost(new Post(txt, 20260112, currentUser));
-                    cout << "Postado!" << endl;
-                    storage.save(&sn); // Auto-save
+                    currentUser->addPost(new Post(txt, currentUser));
+                    cout << "Postado em " << currentUser->getPosts()->back()->getFormattedDate() << endl;
+                    storage.save(&sn);
                     break;
                 }
                 case 3:

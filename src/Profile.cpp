@@ -36,7 +36,7 @@ void Profile::print() {
 	cout << endl << "Name: " << name << " - id: " << getId() << endl;
 	cout << "Number of posts made: " << posts.size() << endl;
 	for (Post* p : posts)
-		cout << "Posts from date " << p->getDate()
+		cout << "Posts from date " << p->getFormattedDate()
 		<< " - Text: " << p->getText() << endl;
 	if (contacts.size() == 0) {
 		cout << "No Contacts " << endl;
@@ -44,7 +44,7 @@ void Profile::print() {
 		for(int i = 0; i < contacts.size(); i++) {
 			for (Post* p : contacts[i]->posts)
 				cout << "Posts from date "
-				<< p->getDate()
+				<< p->getFormattedDate()
 				<< " from contact " << contacts[i]->getName()
 				<< " - Text: " << p->getText()
 				<< endl;

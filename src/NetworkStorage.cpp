@@ -105,7 +105,7 @@ void NetworkStorage::save(SocialNetwork* sn) {
         for (Post* p : *posts) {
             string sql = "INSERT INTO POSTS VALUES ('" + 
                          p->getText() + "', " + 
-                         to_string(p->getDate()) + ", " + 
+                         to_string((long long)p->getDate()) + ", " + 
                          to_string(u_ptr->getId()) + ");";
             sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
         }
@@ -186,7 +186,7 @@ void NetworkStorage::load(SocialNetwork* sn) {
         while (sqlite3_step(stmtPost) == SQLITE_ROW) {
             try {
                  string txt = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 0)));
-                 int date = sqlite3_column_int(stmtPost, 1);
+                 time_t date = (time_t)sqlite3_column_int64(stmtPost, 1);
                  int authorId = sqlite3_column_int(stmtPost, 2);
                  Profile* author = sn->getProfile(authorId);
                  author->addPost(new Post(txt, date, author));
