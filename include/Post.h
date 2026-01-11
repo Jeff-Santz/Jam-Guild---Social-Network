@@ -15,14 +15,16 @@ private:
 public:
     Post(std::string text, Profile* owner); 
     Post(std::string text, std::time_t date, Profile* owner);
-    ~Post();                                     
-    void print();
+    virtual ~Post();                                     
+    virtual void print();
     
     // Getters
     std::string getText();
     std::time_t getDate();
     std::string getFormattedDate();
     Profile* getOwner();
+    virtual std::string getType() { return "TEXT"; }
+    virtual std::string getMediaPath() { return ""; }
     // std::string getContent();
 
 };

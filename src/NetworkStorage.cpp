@@ -1,4 +1,5 @@
 #include "NetworkStorage.h"
+#include "ImagePost.h" // Importante para carregar fotos!
 #include <iostream>
 #include <map>
 
@@ -12,21 +13,31 @@ NetworkStorage::NetworkStorage(string dbFileName) {
     if (exit != SQLITE_OK) cerr << "Error opening DB" << endl;
     else cout << "Database opened successfully!" << endl;
 
-    // 1. Tabela PROFILES atualizada (Agora tem OWNER_ID)
-    string sql = "CREATE TABLE IF NOT EXISTS PROFILES("
-                 "ID INT PRIMARY KEY NOT NULL, "
-                 "NAME TEXT NOT NULL, "
-                 "TYPE TEXT NOT NULL, "
-                 "EMAIL TEXT, "     
-                 "OWNER_ID INT, "
-                 "PASSWORD TEXT );";
-    executeSQL(sql);
+    // 1. Tabela PROFILES (Atualizada com colunas genericas)
+    string sqlUsers = "CREATE TABLE IF NOT EXISTS PROFILES("
+                      "ID INT PRIMARY KEY NOT NULL, "
+                      "NAME TEXT NOT NULL, "
+                      "TYPE TEXT NOT NULL, "
+                      "EMAIL TEXT, "
+                      "OWNER_ID INT, "
+                      "PASSWORD TEXT, "
+                      "ICON_PATH TEXT, "
+                      "BIO TEXT, "
+                      "SUBTITLE TEXT, "   // Genero ou Categoria
+                      "STARTDATE TEXT );";// Nascimento ou Fundacao
+    executeSQL(sqlUsers);
 
-    // 2. Conexões (Igual)
+    // 2. Conexões
     executeSQL("CREATE TABLE IF NOT EXISTS CONNECTIONS(ID1 INT NOT NULL, ID2 INT NOT NULL);");
     
-    // 3. Posts (Igual)
-    executeSQL("CREATE TABLE IF NOT EXISTS POSTS(TEXT TEXT NOT NULL, DATE INT NOT NULL, AUTHOR_ID INT NOT NULL);");
+    // 3. Posts (Com suporte a Imagem)
+    string sqlPosts = "CREATE TABLE IF NOT EXISTS POSTS("
+                      "TEXT TEXT NOT NULL, "
+                      "DATE BIGINT NOT NULL, "
+                      "AUTHOR_ID INT NOT NULL, "
+                      "TYPE TEXT, "
+                      "MEDIA_PATH TEXT);";
+    executeSQL(sqlPosts);
 }
 
 NetworkStorage::~NetworkStorage() {
@@ -36,21 +47,15 @@ NetworkStorage::~NetworkStorage() {
 
 void NetworkStorage::executeSQL(string sql) {
     char* zErrMsg = 0;
-    
-    // sqlite3_exec executa o comando SQL direto
     int rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
-
     if (rc != SQLITE_OK) {
         cerr << "SQL Error: " << zErrMsg << endl;
         sqlite3_free(zErrMsg);
-    } else {
-        cout << "SQL executed successfully" << endl; 
     }
 }
 
 void NetworkStorage::save(SocialNetwork* sn) {
     cout << "DEBUG: Save iniciado." << endl;
-    char* zErrMsg = 0;
     
     // --- PARTE 1: PERFIS ---
     sqlite3_exec(db, "DELETE FROM PROFILES;", nullptr, 0, nullptr);
@@ -58,35 +63,35 @@ void NetworkStorage::save(SocialNetwork* sn) {
     const auto& profiles = sn->getProfiles();
 
     for (const auto& u_ptr : profiles) {
-        // Logica para descobrir o ID do dono (se for Pagina)
-        int ownerId = -1; // -1 significa "Sem dono"
+        int ownerId = -1;
         Page* pagePtr = dynamic_cast<Page*>(u_ptr.get());
         
         if (pagePtr != nullptr && pagePtr->getOwner() != nullptr) {
             ownerId = pagePtr->getOwner()->getId();
         }
 
-        // Montando o SQL com 5 colunas
         string sql = "INSERT INTO PROFILES VALUES (";
         sql += to_string(u_ptr->getId()) + ", ";
         sql += "'" + u_ptr->getName() + "', ";
         sql += "'" + u_ptr->getRole() + "', ";
         
-        // Email
         VerifiedUser* vPtr = dynamic_cast<VerifiedUser*>(u_ptr.get());
         if (vPtr) sql += "'" + vPtr->getEmail() + "', ";
-        else sql += "'', "; // Email vazio
+        else sql += "'', "; 
         
-        // Owner ID
-        sql += to_string(ownerId) + ");"; 
-
-        // Senha
-        sql += "'" + u_ptr->getPassword() + "');";
+        sql += to_string(ownerId) + ", ";
+        sql += "'" + u_ptr->getPassword() + "', ";
+        sql += "'" + u_ptr->getIconPath() + "', ";
+        
+        // NOVOS CAMPOS GENERICOS:
+        sql += "'" + u_ptr->getBio() + "', ";
+        sql += "'" + u_ptr->getSubtitle() + "', "; 
+        sql += "'" + u_ptr->getStartDate() + "');";
 
         sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
     }
 
-    // --- PARTE 2: CONEXOES (Mantenha o codigo anterior aqui...) ---
+    // --- PARTE 2: CONEXOES ---
     sqlite3_exec(db, "DELETE FROM CONNECTIONS;", nullptr, 0, nullptr);
     for (const auto& u_ptr : profiles) {
         vector<Profile*>* contacts = u_ptr->getContacts();
@@ -98,7 +103,7 @@ void NetworkStorage::save(SocialNetwork* sn) {
         }
     }
 
-    // --- PARTE 3: POSTS (Mantenha o codigo anterior aqui...) ---
+    // --- PARTE 3: POSTS ---
     sqlite3_exec(db, "DELETE FROM POSTS;", nullptr, 0, nullptr);
     for (const auto& u_ptr : profiles) {
         list<Post*>* posts = u_ptr->getPosts();
@@ -106,7 +111,9 @@ void NetworkStorage::save(SocialNetwork* sn) {
             string sql = "INSERT INTO POSTS VALUES ('" + 
                          p->getText() + "', " + 
                          to_string((long long)p->getDate()) + ", " + 
-                         to_string(u_ptr->getId()) + ");";
+                         to_string(u_ptr->getId()) + ", " +
+                         "'" + p->getType() + "', " + 
+                         "'" + p->getMediaPath() + "');";
             sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
         }
     }
@@ -116,7 +123,6 @@ void NetworkStorage::save(SocialNetwork* sn) {
 void NetworkStorage::load(SocialNetwork* sn) {
     cout << "DEBUG: Loading..." << endl;
     
-    // Mapa temporario: ID da Pagina -> ID do Dono
     map<int, int> pendingOwners; 
 
     // --- FASE 1: PERFIS ---
@@ -127,23 +133,43 @@ void NetworkStorage::load(SocialNetwork* sn) {
             string name = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
             string type = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2)));
             
-            // Email (coluna 3)
             string email = "";
-            const unsigned char* em = sqlite3_column_text(stmt, 3);
-            if(em) email = string(reinterpret_cast<const char*>(em));
+            if(sqlite3_column_text(stmt, 3))
+                email = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3)));
 
-            // Owner ID (coluna 4)
             int ownerId = sqlite3_column_int(stmt, 4);
 
-            string password = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5)));
+            string password = "";
+            if(sqlite3_column_text(stmt, 5))
+                password = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5)));
+
+            string icon = "default.png";
+            if(sqlite3_column_text(stmt, 6))
+                icon = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6)));
+
+            string bio = "";
+            if(sqlite3_column_text(stmt, 7))
+                bio = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7)));
+
+            string subtitle = "Indefinido";
+            if(sqlite3_column_text(stmt, 8))
+                subtitle = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 8)));
+
+            string startDate = "01/01/2000";
+            if(sqlite3_column_text(stmt, 9))
+                startDate = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9)));
 
             Profile* p = nullptr;
-            if (type == "Verified User") p = new VerifiedUser(name, email, password);
-            else if (type == "Page") {
-                p = new Page(name, nullptr, password); // Cria sem dono por enquanto
-                if (ownerId != -1) pendingOwners[id] = ownerId; // Anota pra resolver depois
+            if (type == "Verified User") {
+                p = new VerifiedUser(name, email, password, icon, bio, subtitle, startDate);
             }
-            else p = new User(name, password);
+            else if (type == "Page") {
+                p = new Page(name, nullptr, password, icon, bio, subtitle, startDate); 
+                if (ownerId != -1) pendingOwners[id] = ownerId;
+            }
+            else {
+                p = new User(name, password, icon, bio, subtitle, startDate);
+            }
 
             p->setId(id);
             sn->add(p);
@@ -151,25 +177,16 @@ void NetworkStorage::load(SocialNetwork* sn) {
     }
     sqlite3_finalize(stmt);
 
-    // --- FASE EXTRA: RECONECTAR DONOS DAS PAGINAS ---
+    // --- FASE EXTRA: RECONECTAR DONOS ---
     for (auto const& [pageId, ownerId] : pendingOwners) {
         try {
-            // Pegamos a pagina e o dono da lista de perfis carregados
             Page* pg = dynamic_cast<Page*>(sn->getProfile(pageId));
             VerifiedUser* vu = dynamic_cast<VerifiedUser*>(sn->getProfile(ownerId));
-            
-            if (pg && vu) {
-                pg->setOwner(vu);
-                // cout << "DEBUG: Dono restaurado para a pagina " << pg->getName() << endl;
-            }
-        } catch (...) { cout << "Erro ao restaurar dono." << endl; }
+            if (pg && vu) pg->setOwner(vu);
+        } catch (...) {}
     }
 
-    // --- FASE 2: CONEXOES (Seu codigo anterior de conexoes vai aqui...) ---
-    // (Lembre-se de copiar o bloco de connections e posts que ja fizemos!)
-    // Vou resumir aqui para nao ficar gigante, mas mantenha o que voce ja tinha:
-    
-    // Load Connections...
+    // --- FASE 2: CONEXOES ---
     sqlite3_stmt* stmtRel;
     if (sqlite3_prepare_v2(db, "SELECT * FROM CONNECTIONS", -1, &stmtRel, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmtRel) == SQLITE_ROW) {
@@ -180,16 +197,30 @@ void NetworkStorage::load(SocialNetwork* sn) {
     }
     sqlite3_finalize(stmtRel);
 
-    // Load Posts...
+    // --- FASE 3: POSTS ---
     sqlite3_stmt* stmtPost;
     if (sqlite3_prepare_v2(db, "SELECT * FROM POSTS", -1, &stmtPost, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmtPost) == SQLITE_ROW) {
+            string txt = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 0)));
+            time_t date = (time_t)sqlite3_column_int64(stmtPost, 1);
+            int authorId = sqlite3_column_int(stmtPost, 2);
+            
+            string type = "TEXT";
+            if (sqlite3_column_text(stmtPost, 3)) 
+                type = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 3)));
+
+            string mediaPath = "";
+            if (sqlite3_column_text(stmtPost, 4))
+                mediaPath = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 4)));
+
             try {
-                 string txt = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 0)));
-                 time_t date = (time_t)sqlite3_column_int64(stmtPost, 1);
-                 int authorId = sqlite3_column_int(stmtPost, 2);
-                 Profile* author = sn->getProfile(authorId);
-                 author->addPost(new Post(txt, date, author));
+                Profile* author = sn->getProfile(authorId);
+                
+                if (type == "IMAGE") {
+                    author->addPost(new ImagePost(txt, date, author, mediaPath));
+                } else {
+                    author->addPost(new Post(txt, date, author));
+                }
             } catch (...) {}
         }
     }

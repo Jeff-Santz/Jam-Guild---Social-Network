@@ -6,10 +6,15 @@
 using namespace std;
 
 
-Page::Page(string name, VerifiedUser* owner, string password) : Profile(name, password) {
+Page::Page(string name, VerifiedUser* owner, string password) : Profile(name, password, "page_default.png", "Pagina Oficial", "Organizacao/Empresa", "Data de Fundacao") {
     this->owner = owner;
     if (owner) Profile::addContact(owner);
-};
+}
+
+Page::Page(string name, VerifiedUser* owner, string password, string icon, string bio, string subtitle, string startDate) : Profile(name, password, icon, bio, subtitle, startDate) {
+    this->owner = owner;
+    if (owner) Profile::addContact(owner);
+}
 
 Page::~Page() {
 }

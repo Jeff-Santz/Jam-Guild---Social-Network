@@ -12,7 +12,11 @@ private:
     VerifiedUser* owner;
 
 public:
+    // Pagina Nova
     Page(std::string name, VerifiedUser* owner, std::string password);
+
+    //Carregar do BD
+    Page(std::string name, VerifiedUser* owner, std::string password, std::string icon, std::string bio, std::string subtitle, std::string startDate);
     virtual ~Page();
 
     void addPost(Post* p);
