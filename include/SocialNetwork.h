@@ -13,6 +13,8 @@ public:
   SocialNetwork();
   ~SocialNetwork();
 
+  Profile* login(std::string name, std::string password);
+
   const std::vector<std::unique_ptr<Profile>>& getProfiles() const;
   Profile* getProfile(int id); 
   int getProfilesAmount();

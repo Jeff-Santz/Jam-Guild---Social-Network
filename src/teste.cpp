@@ -1,97 +1,101 @@
 #include <iostream>
-#include <limits> // Para limpar o buffer do cin
+#include <limits>
 #include "SocialNetwork.h"
+#include "NetworkStorage.h"
 #include "User.h"
 #include "VerifiedUser.h"
 #include "Page.h"
-#include "Post.h"
-#include "NetworkStorage.h"
 
 using namespace std;
 
-// Funcao auxiliar para limpar o ENTER que sobra no teclado
-void cleanBuffer() {
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-}
+void cleanBuffer() { cin.ignore(numeric_limits<streamsize>::max(), '\n'); }
 
 int main() {
     SocialNetwork sn;
     NetworkStorage storage("rede_social.db");
-
-    // 1. CARREGAR DADOS EXISTENTES
-    cout << "Inicializando sistema..." << endl;
-    storage.load(&sn);
-    cout << "Carregados " << sn.getProfilesAmount() << " perfis do banco de dados." << endl;
-
-    int option = -1;
     
-    // 2. LOOP DO MENU (O programa não fecha sozinho)
+    // Carrega tudo
+    storage.load(&sn);
+
+    Profile* currentUser = nullptr; // <--- SESSÃO DO USUARIO
+    int option = -1;
+
     while (option != 0) {
-        cout << "\n=== REDE SOCIAL DO JEFF ===" << endl;
-        cout << "1. Mostrar Timeline (Ver tudo)" << endl;
-        cout << "2. Adicionar Novo Usuario" << endl;
-        cout << "3. Fazer uma Postagem" << endl;
-        cout << "4. Salvar Agora" << endl;
-        cout << "0. Salvar e Sair" << endl;
+        cout << "\n===============================" << endl;
+        if (currentUser == nullptr) {
+            // --- MENU DE VISITANTE ---
+            cout << "Bem-vindo a Rede Social!" << endl;
+            cout << "1. Fazer Login" << endl;
+            cout << "2. Criar Nova Conta" << endl;
+            cout << "0. Sair" << endl;
+        } else {
+            // --- MENU DE USUARIO LOGADO ---
+            cout << "Ola, " << currentUser->getName() << "!" << endl;
+            cout << "1. Ver Timeline" << endl;
+            cout << "2. Fazer Postagem" << endl;
+            cout << "3. Buscar/Adicionar Amigo" << endl;
+            cout << "4. Logout (Sair da conta)" << endl;
+            cout << "0. Sair do Sistema" << endl;
+        }
         cout << "Escolha: ";
         cin >> option;
-        cleanBuffer(); // Limpa o enter
+        cleanBuffer();
 
-        switch (option) {
-            case 1:
-                sn.print();
-                break;
-
-            case 2: {
-                cout << "Nome do Usuario: ";
-                string nome;
-                getline(cin, nome);
+        if (currentUser == nullptr) {
+            // Lógica de Visitante
+            if (option == 1) {
+                string nome, senha;
+                cout << "Usuario: "; getline(cin, nome);
+                cout << "Senha: ";   getline(cin, senha);
                 
-                User* u = new User(nome);
+                currentUser = sn.login(nome, senha);
+                if (currentUser) cout << "Login realizado com sucesso!" << endl;
+                else cout << "Usuario ou senha invalidos!" << endl;
+
+            } else if (option == 2) {
+                string nome, senha;
+                cout << "Escolha seu Usuario: "; getline(cin, nome);
+                cout << "Escolha sua Senha: ";   getline(cin, senha);
+                
+                // Criação simples (User padrão)
+                User* u = new User(nome, senha);
                 sn.add(u);
-                cout << "Usuario " << nome << " criado com ID " << u->getId() << endl;
-                break;
-            }
+                cout << "Conta criada! Faca login para usar." << endl;
+                storage.save(&sn); // Salva logo pra garantir
+            } 
+            else if (option != 0) cout << "Opcao invalida." << endl;
 
-            case 3: {
-                cout << "Digite o ID de quem vai postar: ";
-                int id;
-                cin >> id;
-                cleanBuffer();
-
-                try {
-                    Profile* autor = sn.getProfile(id);
-                    
-                    cout << "Escreva o post: ";
-                    string texto;
-                    getline(cin, texto);
-
-                    // Data fixa por enquanto (depois podemos automatizar)
-                    Post* p = new Post(texto, 20260112, autor);
-                    autor->addPost(p);
-                    cout << "Post publicado!" << endl;
-
-                } catch (...) {
-                    cout << "ERRO: Usuario com ID " << id << " nao existe!" << endl;
+        } else {
+            // Lógica de Usuário Logado
+            switch (option) {
+                case 1: 
+                    sn.print(); // Futuramente mudar para showFeed()
+                    break;
+                case 2: {
+                    string txt;
+                    cout << "O que voce esta pensando? ";
+                    getline(cin, txt);
+                    // Data hardcoded por enquanto, vamos mudar no proximo passo
+                    currentUser->addPost(new Post(txt, 20260112, currentUser));
+                    cout << "Postado!" << endl;
+                    storage.save(&sn); // Auto-save
+                    break;
                 }
-                break;
+                case 3:
+                    cout << "Recurso em desenvolvimento (Busca)..." << endl;
+                    break;
+                case 4:
+                    currentUser = nullptr;
+                    cout << "Voce saiu da conta." << endl;
+                    break;
+                case 0:
+                    cout << "Salvando e fechando..." << endl;
+                    storage.save(&sn);
+                    break;
+                default:
+                    cout << "Opcao invalida." << endl;
             }
-
-            case 4:
-                storage.save(&sn);
-                cout << "Dados salvos no disco!" << endl;
-                break;
-
-            case 0:
-                cout << "Salvando antes de sair..." << endl;
-                storage.save(&sn);
-                cout << "Ate logo!" << endl;
-                break;
-
-            default:
-                cout << "Opcao invalida!" << endl;
         }
     }
-
     return 0;
 }

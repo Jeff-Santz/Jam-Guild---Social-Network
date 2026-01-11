@@ -12,7 +12,7 @@ private:
     VerifiedUser* owner;
 
 public:
-    Page(std::string name, VerifiedUser* owner);
+    Page(std::string name, VerifiedUser* owner, std::string password);
     virtual ~Page();
 
     void addPost(Post* p);

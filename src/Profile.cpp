@@ -8,8 +8,9 @@ using namespace std;
 int Profile::Lastid = 0;
 
 // Construtores e Destrutores
-Profile::Profile(string name) {
+Profile::Profile(string name, string password) {
     this->name = name;
+	this->password = password;
 	Profile::Lastid++;
 	this->id = Lastid;
 }
@@ -25,6 +26,10 @@ Profile::~Profile() {
     posts.clear();
 
 	cout << "Profile deleted" << endl; 
+}
+
+bool Profile::checkPassword(string passAttempt) {
+    return this->password == passAttempt;
 }
 
 void Profile::print() {
@@ -75,6 +80,8 @@ void Profile::setId(int newId) {
  // Getters
 
 string Profile::getName() { return this->name; }
+
+string Profile::getPassword() { return this->password; }
 
 int Profile::getContactsAmount() { return this->contacts.size(); }
 

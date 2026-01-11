@@ -6,12 +6,9 @@
 using namespace std;
 
 
-Page::Page(string name, VerifiedUser* owner) : Profile(name) {
+Page::Page(string name, VerifiedUser* owner, string password) : Profile(name, password) {
     this->owner = owner;
-
-    if (owner != nullptr) {
-        Profile::addContact(owner);
-    }
+    if (owner) Profile::addContact(owner);
 };
 
 Page::~Page() {

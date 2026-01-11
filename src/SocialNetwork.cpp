@@ -17,6 +17,15 @@ SocialNetwork::~SocialNetwork() {
   cout << "SocialNetwork deleted " << endl;
 }
 
+Profile* SocialNetwork::login(string name, string password) {
+    for (auto& u_ptr : profiles) {
+        if (u_ptr->getName() == name && u_ptr->checkPassword(password)) {
+            return u_ptr.get(); 
+        }
+    }
+    return nullptr; 
+}
+
 bool SocialNetwork::add (Profile* profile) {
   if(profile == nullptr) return false;
 

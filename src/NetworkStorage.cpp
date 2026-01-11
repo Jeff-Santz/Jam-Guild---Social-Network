@@ -18,7 +18,8 @@ NetworkStorage::NetworkStorage(string dbFileName) {
                  "NAME TEXT NOT NULL, "
                  "TYPE TEXT NOT NULL, "
                  "EMAIL TEXT, "     
-                 "OWNER_ID INT );"; // <--- NOVO CAMPO
+                 "OWNER_ID INT, "
+                 "PASSWORD TEXT );";
     executeSQL(sql);
 
     // 2. Conexões (Igual)
@@ -79,6 +80,9 @@ void NetworkStorage::save(SocialNetwork* sn) {
         // Owner ID
         sql += to_string(ownerId) + ");"; 
 
+        // Senha
+        sql += "'" + u_ptr->getPassword() + "');";
+
         sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
     }
 
@@ -131,13 +135,15 @@ void NetworkStorage::load(SocialNetwork* sn) {
             // Owner ID (coluna 4)
             int ownerId = sqlite3_column_int(stmt, 4);
 
+            string password = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5)));
+
             Profile* p = nullptr;
-            if (type == "Verified User") p = new VerifiedUser(name, email);
+            if (type == "Verified User") p = new VerifiedUser(name, email, password);
             else if (type == "Page") {
-                p = new Page(name, nullptr); // Cria sem dono por enquanto
+                p = new Page(name, nullptr, password); // Cria sem dono por enquanto
                 if (ownerId != -1) pendingOwners[id] = ownerId; // Anota pra resolver depois
             }
-            else p = new User(name);
+            else p = new User(name, password);
 
             p->setId(id);
             sn->add(p);
