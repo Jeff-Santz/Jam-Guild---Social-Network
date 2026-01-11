@@ -69,6 +69,10 @@ Profile* SocialNetwork::getProfile(int id) {
   throw ProfileNotFound();
 }
 
+const std::vector<std::unique_ptr<Profile>>& SocialNetwork::getProfiles() const {
+    return this->profiles;
+}
+
 
 
 

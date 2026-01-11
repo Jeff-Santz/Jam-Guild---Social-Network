@@ -13,6 +13,7 @@ public:
   SocialNetwork();
   ~SocialNetwork();
 
+  const std::vector<std::unique_ptr<Profile>>& getProfiles() const;
   Profile* getProfile(int id); 
   int getProfilesAmount();
   bool add(Profile* profile);

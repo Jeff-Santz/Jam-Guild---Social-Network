@@ -1,66 +1,97 @@
 #include <iostream>
+#include <limits> // Para limpar o buffer do cin
 #include "SocialNetwork.h"
 #include "User.h"
 #include "VerifiedUser.h"
 #include "Page.h"
 #include "Post.h"
+#include "NetworkStorage.h"
 
 using namespace std;
 
+// Funcao auxiliar para limpar o ENTER que sobra no teclado
+void cleanBuffer() {
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
 int main() {
-    cout << "=== STARTING SOCIAL NETWORK TEST ===" << endl;
+    SocialNetwork sn;
+    NetworkStorage storage("rede_social.db");
 
-    // 1. Criar a Rede
-    SocialNetwork sn; 
+    // 1. CARREGAR DADOS EXISTENTES
+    cout << "Inicializando sistema..." << endl;
+    storage.load(&sn);
+    cout << "Carregados " << sn.getProfilesAmount() << " perfis do banco de dados." << endl;
 
-    // 2. Criar Perfis (Sem carregar de arquivo, criando na raça)
-    // Lembre-se: seus construtores pedem (nome, max_contatos) ou algo assim
-    // Ajuste os parametros conforme o seu User.h / Profile.h
-    User* jeff = new User("Jeff"); 
-    User* lapis = new User("Lapis");
+    int option = -1;
     
-    // Perfil Verificado
-    VerifiedUser* marcelo = new VerifiedUser("Prof. Marcelo", "marcelo@usp.br");
-    
-    // Pagina (Dono é o Marcelo)
-    Page* poli = new Page("Poli USP", marcelo);
+    // 2. LOOP DO MENU (O programa não fecha sozinho)
+    while (option != 0) {
+        cout << "\n=== REDE SOCIAL DO JEFF ===" << endl;
+        cout << "1. Mostrar Timeline (Ver tudo)" << endl;
+        cout << "2. Adicionar Novo Usuario" << endl;
+        cout << "3. Fazer uma Postagem" << endl;
+        cout << "4. Salvar Agora" << endl;
+        cout << "0. Salvar e Sair" << endl;
+        cout << "Escolha: ";
+        cin >> option;
+        cleanBuffer(); // Limpa o enter
 
-    // 3. Adicionar na Rede
-    cout << "Adding profiles..." << endl;
-    sn.add(jeff);
-    sn.add(lapis);
-    sn.add(marcelo);
-    sn.add(poli);
+        switch (option) {
+            case 1:
+                sn.print();
+                break;
 
-    // 4. Criar Conexões (Jeff segue Lapis)
-    cout << "Connecting people..." << endl;
-    jeff->addContact(lapis);
-    // lapis->addContact(jeff); // Se sua lógica for bidirecional automática, não precisa dessa linha
+            case 2: {
+                cout << "Nome do Usuario: ";
+                string nome;
+                getline(cin, nome);
+                
+                User* u = new User(nome);
+                sn.add(u);
+                cout << "Usuario " << nome << " criado com ID " << u->getId() << endl;
+                break;
+            }
 
-    // 5. Criar Posts
-    cout << "Posting..." << endl;
-    // Ajuste a data conforme seu Post.h (int ou string)
-    Post* p1 = new Post("Refatorando tudo para C++ Moderno!", 20260112, jeff);
-    jeff->addPost(p1);
+            case 3: {
+                cout << "Digite o ID de quem vai postar: ";
+                int id;
+                cin >> id;
+                cleanBuffer();
 
-    Post* p2 = new Post("Aulas de POO retornam amanha.", 20260112, marcelo);
-    marcelo->addPost(p2);
+                try {
+                    Profile* autor = sn.getProfile(id);
+                    
+                    cout << "Escreva o post: ";
+                    string texto;
+                    getline(cin, texto);
 
-    // 6. Testar o Relatório
-    cout << "\n=== STATUS DA REDE ===" << endl;
-    sn.print();
-    sn.printStatistics();
+                    // Data fixa por enquanto (depois podemos automatizar)
+                    Post* p = new Post(texto, 20260112, autor);
+                    autor->addPost(p);
+                    cout << "Post publicado!" << endl;
 
-    cout << "\n=== BUSCA POR ID ===" << endl;
-    try {
-        Profile* p = sn.getProfile(jeff->getId());
-        cout << "Found: " << p->getName() << endl;
-    } catch (exception& e) {
-        cout << "Error: " << e.what() << endl;
+                } catch (...) {
+                    cout << "ERRO: Usuario com ID " << id << " nao existe!" << endl;
+                }
+                break;
+            }
+
+            case 4:
+                storage.save(&sn);
+                cout << "Dados salvos no disco!" << endl;
+                break;
+
+            case 0:
+                cout << "Salvando antes de sair..." << endl;
+                storage.save(&sn);
+                cout << "Ate logo!" << endl;
+                break;
+
+            default:
+                cout << "Opcao invalida!" << endl;
+        }
     }
 
-    // O destrutor da SocialNetwork deve limpar a memória dos perfis
-    // Mas os posts precisam ser gerenciados se não estiverem na árvore de delete do Profile
-    cout << "\n=== END OF TEST ===" << endl;
     return 0;
 }

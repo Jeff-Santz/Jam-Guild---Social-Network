@@ -24,6 +24,8 @@ public:
     virtual void addPost(Post* p) = 0;    //Abstract Class
     virtual void print();
 
+    void setId(int newId);
+
     //Getters
     std::string getName();
     int getContactsAmount();

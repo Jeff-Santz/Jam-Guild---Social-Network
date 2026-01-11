@@ -64,6 +64,14 @@ void Profile::addContact(Profile* contact) {
 	contact->contacts.push_back(this);
 }
 
+void Profile::setId(int newId) {
+    this->id = newId;
+
+    if (newId > Lastid) {
+        Lastid = newId;
+    }
+}
+
  // Getters
 
 string Profile::getName() { return this->name; }
