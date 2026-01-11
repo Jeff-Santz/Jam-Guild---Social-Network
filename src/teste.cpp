@@ -16,14 +16,14 @@ int main() {
     // 2. Criar Perfis (Sem carregar de arquivo, criando na raça)
     // Lembre-se: seus construtores pedem (nome, max_contatos) ou algo assim
     // Ajuste os parametros conforme o seu User.h / Profile.h
-    User* jeff = new User("Jeff", 10); 
-    User* lapis = new User("Lapis", 10);
+    User* jeff = new User("Jeff"); 
+    User* lapis = new User("Lapis");
     
     // Perfil Verificado
-    VerifiedUser* marcelo = new VerifiedUser("Prof. Marcelo", "marcelo@usp.br", 20);
+    VerifiedUser* marcelo = new VerifiedUser("Prof. Marcelo", "marcelo@usp.br");
     
     // Pagina (Dono é o Marcelo)
-    Page* poli = new Page("Poli USP", marcelo, 50);
+    Page* poli = new Page("Poli USP", marcelo);
 
     // 3. Adicionar na Rede
     cout << "Adding profiles..." << endl;

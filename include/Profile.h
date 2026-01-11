@@ -5,20 +5,19 @@
 #include <list>
 #include <iostream>
 #include <string>
+#include <vector>
 
 class Profile {
 protected:
     std::string name;
-    Profile** contacts;      
-    int contactsAmount;
-    std::list<Post*> posts;    
-    int max;     
+    std::vector<Profile*> contacts;
+    std::list<Post*> posts;     
 
     static int Lastid;    
     int id;    
 
 public:
-    Profile(std::string name, int max); 
+    Profile(std::string name); 
     virtual ~Profile();               
 
     void addContact(Profile* contact);     
@@ -28,7 +27,7 @@ public:
     //Getters
     std::string getName();
     int getContactsAmount();
-    Profile** getContacts();
+    std::vector<Profile*>* getContacts();
     std::list<Post*>* getPosts();
     std::list<Post*>* getContactsPosts();
 

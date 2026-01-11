@@ -12,7 +12,7 @@ private:
     VerifiedUser* owner;
 
 public:
-    Page(std::string name, VerifiedUser* owner, int max);
+    Page(std::string name, VerifiedUser* owner);
     virtual ~Page();
 
     void addPost(Post* p);

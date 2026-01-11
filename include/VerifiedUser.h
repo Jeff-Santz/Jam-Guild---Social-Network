@@ -10,8 +10,8 @@ private:
     std::string email;
     
 public:
-    VerifiedUser(std::string name, std::string email, int max);
-    VerifiedUser(std::string name, int max);
+    VerifiedUser(std::string name, std::string email);
+    VerifiedUser(std::string name);
 
     std::string getEmail();
     virtual void print();

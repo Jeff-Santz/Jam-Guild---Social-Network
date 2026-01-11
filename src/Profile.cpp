@@ -2,18 +2,16 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <algorithm>
 using namespace std;
 
 int Profile::Lastid = 0;
 
 // Construtores e Destrutores
-Profile::Profile(string name, int max) {
+Profile::Profile(string name) {
     this->name = name;
-    this->max = max;
 	Profile::Lastid++;
 	this->id = Lastid;
-	this->contactsAmount = 0;
-    contacts = new Profile*[max];
 }
 
 Profile::~Profile() {
@@ -25,7 +23,6 @@ Profile::~Profile() {
 		delete p;
 	}
     posts.clear();
-    delete[] contacts;
 
 	cout << "Profile deleted" << endl; 
 }
@@ -36,10 +33,10 @@ void Profile::print() {
 	for (Post* p : posts)
 		cout << "Posts from date " << p->getDate()
 		<< " - Text: " << p->getText() << endl;
-	if (contactsAmount == 0) {
+	if (contacts.size() == 0) {
 		cout << "No Contacts " << endl;
 	} else {
-		for(int i = 0; i < contactsAmount; i++) {
+		for(int i = 0; i < contacts.size(); i++) {
 			for (Post* p : contacts[i]->posts)
 				cout << "Posts from date "
 				<< p->getDate()
@@ -52,38 +49,28 @@ void Profile::print() {
 
 void Profile::addContact(Profile* contact) {
 
-	// maximo de contatos atingido
-	if (this->contactsAmount >= max || contact->contactsAmount >= contact->max) {
-		throw overflow_error ("Maximum number of contacts reached");
-	}	 
-
 	//Erros de Perfil ja adicionado ou Perfil adicionando ele mesmo
 	if (this == contact) {
 		throw invalid_argument ("Profile adding itself");
 	}
 
-	for(int i=0; i < this->contactsAmount; i++) {
-		if (this->contacts[i]==contact){
-			throw invalid_argument ("Already added profile");
-		}
+	
+	auto it = std::find(contacts.begin(), contacts.end(), contact);
+	if (it != contacts.end()) {
+		throw invalid_argument("Already added profile");
 	}
 
-
-	this->contacts[this->contactsAmount] = contact;
-	this->contactsAmount ++;
-
-	contact->contacts[contact->contactsAmount] = this;
-	contact->contactsAmount ++;
-
+	this->contacts.push_back(contact);
+	contact->contacts.push_back(this);
 }
 
  // Getters
 
 string Profile::getName() { return this->name; }
 
-int Profile::getContactsAmount() { return this->contactsAmount; }
+int Profile::getContactsAmount() { return this->contacts.size(); }
 
-Profile** Profile::getContacts() { return this->contacts; }
+std::vector<Profile*>* Profile::getContacts() { return &this->contacts; }
 
 list<Post*>* Profile::getPosts() { return &this->posts;}
 
@@ -95,7 +82,7 @@ list<Post*>* Profile::getContactsPosts() {
 
     list<Post*>* SuperFinalList = new list<Post*>();
 
-    for (int i = 0; i < contactsAmount; i++) {
+    for (int i = 0; i < contacts.size(); i++) {
 		// Primeiro eu copio as postagens do contato pra uma lista genérica
         list<Post*>* contactPosts = contacts[i]->getPosts();
 

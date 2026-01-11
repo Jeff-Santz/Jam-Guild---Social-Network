@@ -6,7 +6,7 @@
 using namespace std;
 
 
-Page::Page(string name, VerifiedUser* owner, int max) : Profile(name, max) {
+Page::Page(string name, VerifiedUser* owner) : Profile(name) {
     this->owner = owner;
 
     Profile::addContact(owner);

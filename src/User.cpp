@@ -3,7 +3,7 @@
 #include <string>
 using namespace std;
 
-User::User(string name, int max) : Profile(name, max) {};
+User::User(string name) : Profile(name) {};
 
 User::~User() {};
 

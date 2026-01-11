@@ -3,11 +3,11 @@
 #include <string>
 using namespace std;
 
-VerifiedUser::VerifiedUser(string name, string email, int max) : User(name, max) {
+VerifiedUser::VerifiedUser(string name, string email) : User(name) {
     this->email = email;
 };
 
-VerifiedUser::VerifiedUser(string name, int max) : User(name, max) {
+VerifiedUser::VerifiedUser(string name) : User(name) {
     this->email = "void@generic.com";
 };
 

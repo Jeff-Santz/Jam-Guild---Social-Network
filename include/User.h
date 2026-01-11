@@ -7,7 +7,7 @@
 
 class User : public Profile {
 public:
-    User(std::string name, int max);
+    User(std::string name);
     virtual ~User();
     virtual void addPost(Post* p);
 };
