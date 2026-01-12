@@ -41,6 +41,20 @@ NetworkStorage::NetworkStorage(string dbFileName) {
                       "TYPE TEXT, "
                       "MEDIA_PATH TEXT);";
     executeSQL(sqlPosts);
+
+    // 4. Curtidas
+    string sqlLikes = "CREATE TABLE IF NOT EXISTS LIKES("
+                      "POST_ID INT NOT NULL, "
+                      "PROFILE_ID INT NOT NULL);";
+    executeSQL(sqlLikes);
+
+    // 5. Comentários
+    string sqlComments = "CREATE TABLE IF NOT EXISTS COMMENTS("
+                      "POST_ID INT NOT NULL, "
+                      "AUTHOR_ID INT NOT NULL, "
+                      "TEXT TEXT NOT NULL, "
+                      "DATE BIGINT NOT NULL);";
+    executeSQL(sqlComments);
 }
 
 NetworkStorage::~NetworkStorage() {
@@ -112,20 +126,39 @@ void NetworkStorage::save(SocialNetwork* sn) {
         }
     }
 
-    // --- PARTE 3: POSTS ---
+    // --- PARTE 3: POSTS, LIKES E COMENTARIOS ---
     sqlite3_exec(db, "DELETE FROM POSTS;", nullptr, 0, nullptr);
+    sqlite3_exec(db, "DELETE FROM LIKES;", nullptr, 0, nullptr);
+    sqlite3_exec(db, "DELETE FROM COMMENTS;", nullptr, 0, nullptr);
+    
+    int postGlobalId = 0; 
     for (const auto& u_ptr : profiles) {
-        list<Post*>* posts = u_ptr->getPosts();
-        for (Post* p : *posts) {
-            string sql = "INSERT INTO POSTS VALUES ('" + 
-                         p->getText() + "', " + 
-                         to_string((long long)p->getDate()) + ", " + 
-                         to_string(u_ptr->getId()) + ", " +
-                         "'" + p->getType() + "', " + 
-                         "'" + p->getMediaPath() + "');";
-            sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
+        for (Post* p : *u_ptr->getPosts()) {
+            postGlobalId++; 
+
+            // Salva o Post - Especificando as colunas para não ter erro
+            string sqlPost = "INSERT INTO POSTS (ROWID, TEXT, DATE, AUTHOR_ID, TYPE, MEDIA_PATH) VALUES (" +
+                             to_string(postGlobalId) + ", '" + p->getText() + "', " +
+                             to_string((long long)p->getDate()) + ", " + to_string(u_ptr->getId()) + ", " +
+                             "'" + p->getType() + "', '" + p->getMediaPath() + "');";
+            sqlite3_exec(db, sqlPost.c_str(), nullptr, 0, nullptr);
+
+            // Salva as Curtidas (Usando o método que retorna o vector)
+            for (Profile* liker : p->getLikes()) { 
+                string sqlLike = "INSERT INTO LIKES VALUES (" + to_string(postGlobalId) + ", " + to_string(liker->getId()) + ");";
+                sqlite3_exec(db, sqlLike.c_str(), nullptr, 0, nullptr);
+            }
+
+            // Salva os Comentários
+            for (Comment* c : p->getComments()) {
+                string sqlCmt = "INSERT INTO COMMENTS VALUES (" +
+                                to_string(postGlobalId) + ", " + to_string(c->getAuthor()->getId()) + ", '" +
+                                c->getText() + "', " + to_string((long long)std::time(0)) + ");";
+                sqlite3_exec(db, sqlCmt.c_str(), nullptr, 0, nullptr);
+            }
         }
     }
+
     cout << "DEBUG: Save concluido." << endl;
 }
 
@@ -227,30 +260,46 @@ void NetworkStorage::load(SocialNetwork* sn) {
 
     // --- FASE 3: POSTS ---
     sqlite3_stmt* stmtPost;
-    if (sqlite3_prepare_v2(db, "SELECT * FROM POSTS", -1, &stmtPost, nullptr) == SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, "SELECT ROWID, * FROM POSTS", -1, &stmtPost, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmtPost) == SQLITE_ROW) {
-            string txt = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 0)));
-            time_t date = (time_t)sqlite3_column_int64(stmtPost, 1);
-            int authorId = sqlite3_column_int(stmtPost, 2);
-            
-            string type = "TEXT";
-            if (sqlite3_column_text(stmtPost, 3)) 
-                type = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 3)));
+            int postDbId = sqlite3_column_int(stmtPost, 0);
+            string txt = string((const char*)sqlite3_column_text(stmtPost, 1));
+            time_t date = (time_t)sqlite3_column_int64(stmtPost, 2);
+            int authorId = sqlite3_column_int(stmtPost, 3);
+            string type = string((const char*)sqlite3_column_text(stmtPost, 4));
+            string media = string((const char*)sqlite3_column_text(stmtPost, 5));
 
-            string mediaPath = "";
-            if (sqlite3_column_text(stmtPost, 4))
-                mediaPath = string(reinterpret_cast<const char*>(sqlite3_column_text(stmtPost, 4)));
+            Profile* author = sn->getProfile(authorId);
+            if (author) {
+                Post* newPost;
+                if (type == "IMAGE") newPost = new ImagePost(txt, date, author, media);
+                else newPost = new Post(txt, date, author);
 
-            try {
-                Profile* author = sn->getProfile(authorId);
-                if (author) {
-                    if (type == "IMAGE") {
-                        author->addPost(new ImagePost(txt, date, author, mediaPath));
-                    } else {
-                        author->addPost(new Post(txt, date, author));
+                // --- CARREGAR CURTIDAS DO POST ---
+                sqlite3_stmt* stmtLike;
+                string sqlL = "SELECT PROFILE_ID FROM LIKES WHERE POST_ID = " + to_string(postDbId);
+                if (sqlite3_prepare_v2(db, sqlL.c_str(), -1, &stmtLike, nullptr) == SQLITE_OK) {
+                    while (sqlite3_step(stmtLike) == SQLITE_ROW) {
+                        Profile* liker = sn->getProfile(sqlite3_column_int(stmtLike, 0));
+                        if (liker) newPost->addLike(liker); // Use uma versão que não dê throw se possível
                     }
+                    sqlite3_finalize(stmtLike);
                 }
-            } catch (...) {}
+
+                // --- CARREGAR COMENTÁRIOS DO POST ---
+                sqlite3_stmt* stmtCmt;
+                string sqlC = "SELECT AUTHOR_ID, TEXT FROM COMMENTS WHERE POST_ID = " + to_string(postDbId);
+                if (sqlite3_prepare_v2(db, sqlC.c_str(), -1, &stmtCmt, nullptr) == SQLITE_OK) {
+                    while (sqlite3_step(stmtCmt) == SQLITE_ROW) {
+                        Profile* cmtAuthor = sn->getProfile(sqlite3_column_int(stmtCmt, 0));
+                        string cmtTxt = string((const char*)sqlite3_column_text(stmtCmt, 1));
+                        if (cmtAuthor) newPost->addComment(cmtTxt, cmtAuthor);
+                    }
+                    sqlite3_finalize(stmtCmt);
+                }
+
+                author->addPost(newPost);
+            }
         }
     }
     sqlite3_finalize(stmtPost);

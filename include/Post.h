@@ -25,6 +25,7 @@ public:
     int getLikesCount() const;
     void addComment(std::string text, Profile* author);
     const std::vector<Comment*>& getComments() const;
+    const std::vector<Profile*>& getLikes() const;
 
     // Setters
     void setOwner(Profile* newOwner);

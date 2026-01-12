@@ -55,6 +55,10 @@ string Post::getFormattedDate() {
     return string(buffer);
 }
 
+const std::vector<Profile*>& Post::getLikes() const {
+    return likes;
+}
+
 const std::vector<Comment*>& Post::getComments() const {
     return comments;
 }
