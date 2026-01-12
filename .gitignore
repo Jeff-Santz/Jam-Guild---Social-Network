@@ -1,7 +1,14 @@
 build/
 .vscode/
+old/
+
 *.exe
 *.o
-include.zip
-src.zip
-old/
+*.db
+*.sqlite
+
+*.zip
+*.rar
+*.7z
+
+*.log

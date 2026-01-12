@@ -16,6 +16,8 @@ NetworkStorage::NetworkStorage(string dbFileName) {
     if (exit != SQLITE_OK) cerr << "Error opening DB" << endl;
     else cout << "Database opened successfully!" << endl;
 
+    executeSQL("PRAGMA journal_mode=WAL;");
+
     // Atualizações de esquema (migrations) podem ser gerenciadas aqui
     // executeSQL("ALTER TABLE PROFILES ADD COLUMN IS_VERIFIED INT DEFAULT 0;");
 
