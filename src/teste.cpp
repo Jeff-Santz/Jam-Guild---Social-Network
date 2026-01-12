@@ -6,6 +6,7 @@
 #include "User.h"
 #include "Page.h"
 #include "ImagePost.h" 
+#include "Utils.h"
 
 using namespace std;
 
@@ -116,10 +117,33 @@ int main() {
                     break;
                 }
                 case 3: {
-                    cout << "Nova Bio: "; string s; getline(cin, s);
+                    showHeader("EDITAR PERFIL");
+                    string s;
+
+                    cout << "Nova Bio: "; getline(cin, s);
                     if(!s.empty()) currentUser->setBio(s);
-                    cout << "Novo Subtitulo: "; getline(cin, s);
+
+                    cout << "Novo Genero/Subtitulo: "; getline(cin, s);
                     if(!s.empty()) currentUser->setSubtitle(s);
+
+                    // Edição de Data com Throw/Catch
+                    cout << "Nova Data de Nascimento (Ex: 01/01/2000 ou 01012000): "; 
+                    getline(cin, s);
+                    
+                    if(!s.empty()) {
+                        try {
+                            // A função valida e já conserta a string 's' se faltar as barras
+                            Utils::validateAndFixDate(s); 
+                            
+                            currentUser->setStartDate(s);
+                            cout << ">> Sucesso: Data atualizada para " << s << endl;
+                        } 
+                        catch (const exception& e) {
+                            // Aqui pegamos qualquer throw (invalid_argument, out_of_range, etc)
+                            cout << ">> [ERRO]: " << e.what() << endl;
+                        }
+                    }
+
                     storage.save(&sn);
                     break;
                 }

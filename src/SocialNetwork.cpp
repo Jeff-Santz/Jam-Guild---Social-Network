@@ -3,6 +3,7 @@
 #include "User.h"
 #include "Page.h"
 #include "ProfileNotFound.h"
+#include "Utils.h"
 #include <fstream>
 #include <map>
 #include <algorithm>
@@ -18,9 +19,11 @@ SocialNetwork::~SocialNetwork() {
   cout << "SocialNetwork deleted " << endl;
 }
 
-Profile* SocialNetwork::login(string name, string password) {
+Profile* SocialNetwork::login(string name, string passwordAttempt) {
+  string hashedAttempt = Utils::hashPassword(passwordAttempt);
+
     for (auto& u_ptr : profiles) {
-        if (u_ptr->getName() == name && u_ptr->checkPassword(password)) {
+        if (u_ptr->getName() == name && u_ptr->checkPassword(hashedAttempt)) {
             return u_ptr.get(); 
         }
     }

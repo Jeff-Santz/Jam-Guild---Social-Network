@@ -1,4 +1,5 @@
 #include "Profile.h"
+#include "Utils.h"
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -10,7 +11,7 @@ int Profile::Lastid = 0;
 // Construtores e Destrutores
 Profile::Profile(string name, string password, string icon, string bio, string subtitle, string startDate) {
     this->name = name;
-    this->password = password;
+    this->password = Utils::hashPassword(password);
     this->iconPath = icon;
     this->bio = bio;
     this->subtitle = subtitle;
@@ -33,8 +34,8 @@ Profile::~Profile() {
 	cout << "Profile deleted" << endl; 
 }
 
-bool Profile::checkPassword(string passAttempt) {
-    return this->password == passAttempt;
+bool Profile::checkPassword(string hashedPassAttempt) {
+    return this->password == hashedPassAttempt;
 }
 
 void Profile::print() {
