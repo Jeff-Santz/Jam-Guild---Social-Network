@@ -1,4 +1,6 @@
 #include "Profile.h"
+#include "User.h"
+#include "Utils.h"
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -90,6 +92,50 @@ void Profile::addContact(Profile* contact) {
 
 	this->contacts.push_back(contact);
 	contact->contacts.push_back(this);
+
+	User* userTarget = dynamic_cast<User*>(contact);
+    if (userTarget) {
+        std::string msg = this->getName() + " added you as a contact!";
+		userTarget->addNotification(new Notification(msg));
+	}
+}
+
+void Profile::addContactRequest(Profile* requester) {
+	// Pra nao enviar pedido duplicado
+	for (Profile* existing : contactRequests) {
+		if (existing == requester) {
+			throw std::logic_error("Contact request already sent!");
+		}
+	}
+	contactRequests.push_back(requester);
+}
+
+void Profile::removeRequest(Profile* requester) {
+	contactRequests.erase(
+		std::remove(contactRequests.begin(), contactRequests.end(), requester),
+		contactRequests.end()
+	);
+}
+
+std::vector<Profile*>& Profile::getContactRequests() {
+    return this->contactRequests;
+}
+
+void Profile::removeContact(Profile* contact) {
+    if (!contact) return;
+
+    // Remove o contato da minha lista
+    this->contacts.erase(
+        std::remove(this->contacts.begin(), this->contacts.end(), contact), 
+        this->contacts.end()
+    );
+
+    // Remove eu da lista de contatos do outro perfil
+    auto& otherContacts = *contact->getContacts();
+    otherContacts.erase(
+        std::remove(otherContacts.begin(), otherContacts.end(), this), 
+        otherContacts.end()
+    );
 }
 
 void Profile::setId(int newId) {
@@ -103,7 +149,7 @@ void Profile::setId(int newId) {
 void Profile::setIconPath(string path) { this->iconPath = path; }
 void Profile::setBio(string text) { this->bio = text; }
 void Profile::setSubtitle(string text) { this->subtitle = text; }
-void Profile::setStartDate(string date) { this->startDate = date; }
+void Profile::setStartDate(string date) { this->startDate = Utils::validateAndFixDate(date); }
 
 //Getters
 string Profile::getName() { return this->name; }

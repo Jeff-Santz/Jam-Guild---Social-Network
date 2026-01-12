@@ -1,10 +1,13 @@
 #include "Utils.h"
+#include <iostream>
+#include <limits>
 #include <sstream>
 #include <sstream>
 #include <iomanip>
 #include <regex>
 #include <ctime>
 #include <stdexcept>
+
 
 std::string Utils::hashPassword(const std::string& password) {
     unsigned long hash = 5381;
@@ -18,7 +21,7 @@ std::string Utils::hashPassword(const std::string& password) {
     return ss.str();
 }
 
-bool Utils::validateAndFixDate(std::string& date) {
+std::string Utils::validateAndFixDate(std::string date) {
     // Lógica para tratar 01012005 -> 01/01/2005
     if (date.length() == 8 && date.find('/') == std::string::npos) {
         date = date.substr(0, 2) + "/" + date.substr(2, 2) + "/" + date.substr(4, 4);
@@ -53,5 +56,15 @@ bool Utils::validateAndFixDate(std::string& date) {
         throw std::logic_error("Calender date is invalid.");
     }
 
-    return true;
+    return date;
+}
+
+void Utils::cleanBuffer() {
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+void Utils::showHeader(const std::string& title) {
+    std::cout << "\n=======================================" << std::endl;
+    std::cout << "   " << title << std::endl;
+    std::cout << "=======================================" << std::endl;
 }

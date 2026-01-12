@@ -20,11 +20,11 @@ SocialNetwork::~SocialNetwork() {
   cout << "SocialNetwork deleted " << endl;
 }
 
-Profile* SocialNetwork::login(string name, string passwordAttempt) {
+Profile* SocialNetwork::login(int id, string passwordAttempt) {
   string hashedAttempt = Utils::hashPassword(passwordAttempt);
 
     for (auto& u_ptr : profiles) {
-        if (u_ptr->getName() == name && u_ptr->checkPassword(hashedAttempt)) {
+        if (u_ptr->getId() == id && u_ptr->checkPassword(hashedAttempt)) {
             return u_ptr.get(); 
         }
     }
@@ -101,9 +101,9 @@ int calculateDistance(const std::string& s1, const std::string& s2) {
     for (int j = 1; j <= n; j++) {
         for (int i = 1; i <= m; i++) {
             int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
-            d[i][j] = std::min({ d[i - 1][j] + 1,       // deleção
-                                 d[i][j - 1] + 1,       // inserção
-                                 d[i - 1][j - 1] + cost // substituição
+            d[i][j] = std::min({ d[i - 1][j] + 1,       
+                                 d[i][j - 1] + 1,       
+                                 d[i - 1][j - 1] + cost 
                                });
         }
     }
@@ -119,17 +119,27 @@ std::vector<Profile*> SocialNetwork::searchProfiles(std::string term) {
         std::string nameLower = u_ptr->getName();
         std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
 
-        // 1. Busca exata ou por substring (o que já tínhamos)
+        // Busca Exata
         if (nameLower.find(termLower) != std::string::npos) {
             results.push_back(u_ptr.get());
         } 
-        // 2. Busca por proximidade (Fuzzy)
-        // Se a distância for pequena (ex: 1 ou 2 letras de diferença)
+        // Busca Aproximada
         else if (calculateDistance(termLower, nameLower) <= 2) { 
             results.push_back(u_ptr.get());
         }
     }
     return results;
+}
+
+std::vector<Page*> SocialNetwork::getPagesByOwner(int ownerId) {
+    std::vector<Page*> ownedPages;
+    for (auto& p_ptr : profiles) {
+        Page* pg = dynamic_cast<Page*>(p_ptr.get());
+        if (pg && pg->getOwner() && pg->getOwner()->getId() == ownerId) {
+            ownedPages.push_back(pg);
+        }
+    }
+    return ownedPages;
 }
 
 int SocialNetwork::getProfilesAmount() {
@@ -152,19 +162,19 @@ const std::vector<std::unique_ptr<Profile>>& SocialNetwork::getProfiles() const 
 std::vector<Post*> SocialNetwork::getTimeline(User* user) {
     std::vector<Post*> timeline;
 
-    // 1. Pega os posts do próprio usuário
+    // Pega os posts do próprio usuário
     for (Post* p : *user->getPosts()) {
         timeline.push_back(p);
     }
 
-    // 2. Pega os posts de todos os amigos
+    // Pega os posts de todos os amigos
     for (Profile* friendPtr : *user->getContacts()) {
         for (Post* p : *friendPtr->getPosts()) {
             timeline.push_back(p);
         }
     }
 
-    // 3. Ordena por data (mais recente primeiro) usando Lambda
+    // Ordena por data 
     std::sort(timeline.begin(), timeline.end(), [](Post* a, Post* b) {
         return a->getDate() > b->getDate();
     });

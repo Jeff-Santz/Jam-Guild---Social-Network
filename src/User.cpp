@@ -18,6 +18,20 @@ User::User(std::string name, std::string password, std::string icon, std::string
 
 User::~User() {};
 
+void User::addNotification(Notification* n) {
+    if (n) {
+        notifications.push_back(std::unique_ptr<Notification>(n));
+    }
+}
+
+void User::clearNotifications() {
+	notifications.clear();
+}
+
+const std::vector<std::unique_ptr<Notification>>& User::getNotifications() const {
+    return notifications;
+}
+
 void User::addPost(Post* p) {
 	posts.push_back(p);
 }

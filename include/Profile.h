@@ -7,12 +7,15 @@
 #include <string>
 #include <vector>
 
+class User;
+
 class Profile {
 protected:
     std::string name;
     std::string password;
     std::vector<Profile*> contacts;
-    std::list<Post*> posts;   
+    std::list<Post*> posts; 
+    std::vector<Profile*> contactRequests;  
     
     // Referentes ao Perfil
     std::string iconPath;
@@ -34,7 +37,10 @@ public:
     virtual ~Profile();               
 
     bool checkPassword(std::string passAttempt);
-    void addContact(Profile* contact);     
+    void addContactRequest(Profile* requester);
+    void removeRequest(Profile* requester);
+    void addContact(Profile* contact); 
+    void removeContact(Profile* contact);    
     virtual void addPost(Post* p) = 0;    //Abstract Class
     virtual void print();
 
@@ -56,6 +62,7 @@ public:
     std::vector<Profile*>* getContacts();
     std::list<Post*>* getPosts();
     std::list<Post*>* getContactsPosts();
+    std::vector<Profile*>& getContactRequests();
     virtual std::string getRole() const { return "Profile"; }
 
 

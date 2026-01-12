@@ -1,6 +1,8 @@
 #include "NetworkStorage.h"
 #include "ImagePost.h" 
 #include "Page.h" 
+#include "User.h"
+#include "Notification.h"
 #include <iostream>
 #include <map>
 
@@ -13,6 +15,9 @@ NetworkStorage::NetworkStorage(string dbFileName) {
     int exit = sqlite3_open(dbFileName.c_str(), &db);
     if (exit != SQLITE_OK) cerr << "Error opening DB" << endl;
     else cout << "Database opened successfully!" << endl;
+
+    // Atualizações de esquema (migrations) podem ser gerenciadas aqui
+    // executeSQL("ALTER TABLE PROFILES ADD COLUMN IS_VERIFIED INT DEFAULT 0;");
 
     // 1. Tabela PROFILES 
     // ADICIONEI A COLUNA 'IS_VERIFIED' NO FINAL
@@ -55,6 +60,18 @@ NetworkStorage::NetworkStorage(string dbFileName) {
                       "TEXT TEXT NOT NULL, "
                       "DATE BIGINT NOT NULL);";
     executeSQL(sqlComments);
+
+    // 6. Pedidos de Amizade (Pendentes)
+    string sqlRequests = "CREATE TABLE IF NOT EXISTS FRIEND_REQUESTS("
+                        "SENDER_ID INT NOT NULL, "
+                        "RECEIVER_ID INT NOT NULL);";
+    executeSQL(sqlRequests);
+
+    //7. Notificações
+    string sqlNotifications = "CREATE TABLE IF NOT EXISTS NOTIFICATIONS("
+                              "USER_ID INT NOT NULL, "
+                              "MESSAGE TEXT NOT NULL);";
+    executeSQL(sqlNotifications);
 }
 
 NetworkStorage::~NetworkStorage() {
@@ -155,6 +172,33 @@ void NetworkStorage::save(SocialNetwork* sn) {
                                 to_string(postGlobalId) + ", " + to_string(c->getAuthor()->getId()) + ", '" +
                                 c->getText() + "', " + to_string((long long)std::time(0)) + ");";
                 sqlite3_exec(db, sqlCmt.c_str(), nullptr, 0, nullptr);
+            }
+        }
+    }
+
+    // --- PARTE 4: SOLICITACOES DE AMIZADE ---
+    sqlite3_exec(db, "DELETE FROM FRIEND_REQUESTS;", nullptr, 0, nullptr);
+    for (const auto& u_ptr : profiles) {
+        // Pegamos a lista de quem enviou pedido para o perfil atual
+        auto& requests = u_ptr->getContactRequests(); 
+        for (Profile* sender : requests) {
+            string sql = "INSERT INTO FRIEND_REQUESTS VALUES (" + 
+                        to_string(sender->getId()) + ", " + 
+                        to_string(u_ptr->getId()) + ");";
+            sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
+        }
+    }
+
+    // --- PARTE 5: NOTIFICAÇÕES ---
+    executeSQL("DELETE FROM NOTIFICATIONS;");
+
+    for (auto& profile : sn->getProfiles()) {
+        User* uPtr = dynamic_cast<User*>(profile.get());
+        if (uPtr) {
+            for (const auto& n : uPtr->getNotifications()) {
+                string sql = "INSERT INTO NOTIFICATIONS (USER_ID, MESSAGE) VALUES (" +
+                            to_string(uPtr->getId()) + ", '" + n->getMessage() + "');";
+                executeSQL(sql);
             }
         }
     }
@@ -302,7 +346,51 @@ void NetworkStorage::load(SocialNetwork* sn) {
             }
         }
     }
+    // --- FASE 4: PEDIDOS DE AMIZADE ---
+    sqlite3_stmt* stmtReq;
+    if (sqlite3_prepare_v2(db, "SELECT * FROM FRIEND_REQUESTS", -1, &stmtReq, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmtReq) == SQLITE_ROW) {
+            try {
+                int senderId = sqlite3_column_int(stmtReq, 0);
+                int receiverId = sqlite3_column_int(stmtReq, 1);
+                
+                Profile* sender = sn->getProfile(senderId);
+                Profile* receiver = sn->getProfile(receiverId);
+                
+                if (sender && receiver) {
+                    receiver->addContactRequest(sender);
+                }
+            } catch (...) {}
+        }
+    }
     sqlite3_finalize(stmtPost);
+
+// --- FASE 5: NOTIFICAÇÕES ---
+    sqlite3_stmt* stmtNotif;
+    const char* sqlNotif = "SELECT USER_ID, MESSAGE FROM NOTIFICATIONS";
+
+    if (sqlite3_prepare_v2(db, sqlNotif, -1, &stmtNotif, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmtNotif) == SQLITE_ROW) {
+            try {
+                int userId = sqlite3_column_int(stmtNotif, 0);
+                const unsigned char* text = sqlite3_column_text(stmtNotif, 1);
+                
+                if (text) {
+                    string message = string(reinterpret_cast<const char*>(text));
+                    
+                    Profile* profile = sn->getProfile(userId);
+                    User* user = dynamic_cast<User*>(profile);
+                    
+                    if (user) {
+                        user->addNotification(new Notification(message));
+                    }
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Erro ao carregar notificacao: " << e.what() << std::endl;
+            }
+        }
+        sqlite3_finalize(stmtNotif); 
+    }
     
     cout << "Data loaded successfully!" << endl;
 }

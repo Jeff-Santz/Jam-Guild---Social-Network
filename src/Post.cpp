@@ -1,5 +1,6 @@
 #include "Post.h"
 #include "Profile.h"  
+#include "User.h"
 #include <string>
 #include <stdexcept>
 using namespace std;
@@ -37,11 +38,23 @@ void Post::addLike(Profile* p) {
         }
     }
     likes.push_back(p);
+
+    User* owner = dynamic_cast<User*>(this->owner);
+    if (owner && p != this->owner) {
+        std::string msg = owner->getName() + " Liked your post!";
+        owner->addNotification(new Notification(msg));
+    }
 }
 
 void Post::addComment(std::string text, Profile* author) {
     if (text.empty()) return;
     comments.push_back(new Comment(text, author));
+
+    User* owner = dynamic_cast<User*>(this->owner);
+    if (owner && author != owner) {
+        std::string msg = author->getName() + " commented on your post!";
+        owner->addNotification(new Notification(msg));
+    }
 }
 
 void Post::setOwner(Profile* newOwner) {

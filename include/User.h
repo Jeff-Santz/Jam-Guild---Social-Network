@@ -2,13 +2,17 @@
 #define USER_H
 
 #include "Profile.h"
+#include "Notification.h"
 #include <iostream>
 #include <string>
+#include <memory>
+#include <vector>
 
 class User : public Profile {
 private:
     bool isVerifiedStatus;   
     std::string Email; 
+    std::vector<std::unique_ptr<Notification>> notifications;
 
 public:
     // Conta Nova
@@ -19,7 +23,10 @@ public:
     
     virtual ~User();
     virtual void addPost(Post* p);
-    void verify(std::string email); // O método mágico
+    void addNotification(Notification* n);
+    const std::vector<std::unique_ptr<Notification>>& getNotifications() const;
+    void clearNotifications();
+    void verify(std::string email);
     bool isVerified();
 
     virtual std::string getRole() const override { 
