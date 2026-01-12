@@ -4,9 +4,8 @@
 #include "SocialNetwork.h"
 #include "NetworkStorage.h"
 #include "User.h"
-#include "VerifiedUser.h"
 #include "Page.h"
-#include "ImagePost.h" // Nao esqueca de incluir se ja criou
+#include "ImagePost.h" 
 
 using namespace std;
 
@@ -24,8 +23,14 @@ int main() {
     NetworkStorage storage("rede_social.db");
     
     // Carrega tudo
-    cout << "Carregando sistema..." << endl;
-    storage.load(&sn);
+    try {
+        cout << "Carregando sistema..." << endl;
+        storage.load(&sn);
+    } catch (const exception& e) {
+        cerr << ">> ERRO FATAL ao carregar banco de dados: " << e.what() << endl;
+        cout << "O programa sera iniciado com banco vazio." << endl;
+        // Aqui o programa continua, mas sem travar
+    }
 
     Profile* currentUser = nullptr; // Quem fez login (Dono da conta)
     Page* currentPage = nullptr;    // Pagina que esta sendo gerenciada (se houver)
@@ -44,18 +49,21 @@ int main() {
             cin >> option; cleanBuffer();
 
             if (option == 1) {
-                string nome, senha;
-                cout << "Usuario: "; getline(cin, nome);
-                cout << "Senha: ";   getline(cin, senha);
-                currentUser = sn.login(nome, senha);
-                if (!currentUser) cout << ">> Erro: Login invalido!" << endl;
-                else cout << ">> Bem-vindo de volta, " << currentUser->getName() << "!" << endl;
+                try {
+                    string nome, senha;
+                    cout << "Usuario: "; getline(cin, nome);
+                    cout << "Senha: ";   getline(cin, senha);
+                    currentUser = sn.login(nome, senha);
+                    if (!currentUser) cout << ">> Erro: Login invalido!" << endl;
+                } catch (const exception& e) {
+                    cout << ">> Erro tecnico no login: " << e.what() << endl;
+                }
             }
             else if (option == 2) {
                 string nome, senha;
                 cout << "Novo Usuario: "; getline(cin, nome);
                 cout << "Nova Senha: ";   getline(cin, senha);
-                // Cria com dados padrao (subtitulo e data serao padrao)
+                // Cria User comum (Standard)
                 sn.add(new User(nome, senha)); 
                 cout << ">> Conta criada com sucesso! Faca login." << endl;
                 storage.save(&sn);
@@ -67,12 +75,19 @@ int main() {
         
         // --- CENARIO 2: USUARIO LOGADO (GERENCIANDO O PROPRIO PERFIL) ---
         else if (currentPage == nullptr) {
-            showHeader("DASHBOARD: " + currentUser->getName());
+            
+            // Verifica status para exibir no menu
+            string status = "";
+            User* u = dynamic_cast<User*>(currentUser);
+            if (u && u->isVerified()) status = " [VERIFICADO]";
+
+            showHeader("DASHBOARD: " + currentUser->getName() + status);
             cout << "1. Ver Meu Perfil (Dados e Posts)" << endl;
             cout << "2. Fazer Postagem" << endl;
             cout << "3. Editar Perfil (Bio, Foto, Info)" << endl;
             cout << "4. Buscar Pessoas / Adicionar Amigo" << endl;
-            cout << "5. CRIAR/GERENCIAR PAGINA" << endl; // <--- NOVA OPCAO
+            cout << "5. CRIAR/GERENCIAR PAGINA" << endl; 
+            cout << "6. Solicitar Verificacao (Selo Azul)" << endl; // Nova Opcao
             cout << "9. Logout" << endl;
             cout << "0. Sair e Salvar" << endl;
             cout << "Escolha: ";
@@ -85,38 +100,99 @@ int main() {
                 case 2: {
                     cout << "Digite o texto: ";
                     string txt; getline(cin, txt);
-                    // Aqui voce pode por a logica de imagem/texto se quiser
-                    currentUser->addPost(new Post(txt, currentUser));
+                    // Aqui voce pode perguntar se quer imagem
+                    cout << "Eh uma imagem? (s/n): ";
+                    char resp; cin >> resp; cleanBuffer();
+                    
+                    if (resp == 's' || resp == 'S') {
+                         cout << "Caminho do arquivo (ex: foto.png): ";
+                         string path; getline(cin, path);
+                         currentUser->addPost(new ImagePost(txt, currentUser, path));
+                    } else {
+                         currentUser->addPost(new Post(txt, currentUser));
+                    }
                     cout << ">> Publicado!" << endl;
                     storage.save(&sn);
                     break;
                 }
                 case 3: {
-                    // Menu rapido de edicao
-                    cout << "Novo Subtitulo (Genero): "; string s; getline(cin, s);
-                    if(!s.empty()) currentUser->setSubtitle(s);
-                    cout << "Nova Bio: "; getline(cin, s);
+                    cout << "Nova Bio: "; string s; getline(cin, s);
                     if(!s.empty()) currentUser->setBio(s);
+                    cout << "Novo Subtitulo: "; getline(cin, s);
+                    if(!s.empty()) currentUser->setSubtitle(s);
                     storage.save(&sn);
                     break;
                 }
-                case 4:
-                    cout << ">> Recurso de busca em desenvolvimento..." << endl;
-                    break;
-                case 5: {
-                    // --- LOGICA DE PAGINAS ---
-                    // Verifica se ele é um VerifiedUser (só verificados podem ter paginas?) 
-                    // Ou qualquer um pode? Vamos deixar qualquer um criar por enquanto, 
-                    // mas precisamos de um VerifiedUser para ser "Dono".
-                    // Se o currentUser for apenas User, nao pode ser owner de Page na nossa logica antiga.
-                    // Vamos adaptar: Tentar cast para VerifiedUser.
+                case 4: { // Buscar e Adicionar
+                    cout << "Search for someone: ";
+                    string term; 
+                    getline(cin, term);
                     
-                    VerifiedUser* vUser = dynamic_cast<VerifiedUser*>(currentUser);
+                    vector<Profile*> results = sn.searchProfiles(term);
                     
-                    if (vUser == nullptr) {
-                        cout << ">> Apenas Usuarios Verificados podem criar paginas! (Regra de Negocio)" << endl;
-                        // Opcional: oferecer upgrade de conta
+                    if (results.empty()) {
+                        cout << ">> No one found with that name." << endl;
                     } else {
+                        showHeader("SEARCH RESULTS");
+                        for (size_t i = 0; i < results.size(); i++) {
+                            // Exibimos um resumo: Nome, Cargo e Bio curta
+                            cout << i << ". " << results[i]->getName();
+                            if (results[i]->getRole() == "Verified User") cout << " [V]";
+                            cout << " | " << results[i]->getSubtitle() << endl;
+                            cout << "   Bio: " << results[i]->getBio().substr(0, 30) << "..." << endl;
+                            cout << "---------------------------------------" << endl;
+                        }
+                        
+                        cout << "Select a number to inspect (or -1 to cancel): ";
+                        int idx; cin >> idx; cleanBuffer();
+                        
+                        if (idx >= 0 && idx < (int)results.size()) {
+                            try {
+                                Profile* target = results[idx];
+                                if (!target) throw runtime_error("Perfil indisponivel");
+
+                                showHeader("INSPECTING PROFILE");
+                                target->print();
+
+                                cout << "\nIs this the person you're looking for?" << endl;
+                                cout << "1. Yes, add as friend" << endl;
+                                cout << "2. No, back to search" << endl;
+                                int conf; cin >> conf; cleanBuffer();
+                                
+
+                                if (conf == 1) {
+                                    try {
+                                        // Tenta adicionar
+                                        currentUser->addContact(target);
+                                        cout << ">> Successfully added " << target->getName() << "!" << endl;
+                                        storage.save(&sn);
+                                    } 
+                                    catch (const std::logic_error& e) {
+                                        cout << "\n[!] OPS: " << e.what() << endl;
+                                        cout << "Returning to menu..." << endl;
+                                    }
+                                }
+                            } catch (const exception& e) {
+                                cout << ">> Erro ao visualizar perfil: " << e.what() << endl;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 5: {
+                    // --- LOGICA DE PAGINAS (REFATORADA) ---
+                    // 1. Garante que é um User (não uma Pagina tentando criar Pagina)
+                    User* userLogado = dynamic_cast<User*>(currentUser);
+                    
+                    if (userLogado == nullptr) {
+                        cout << ">> Erro de sistema." << endl;
+                    } 
+                    // 2. Verifica o booleano isVerified
+                    else if (!userLogado->isVerified()) {
+                        cout << ">> Apenas Usuarios Verificados podem criar paginas!" << endl;
+                        cout << ">> Utilize a opcao 6 para se verificar." << endl;
+                    } 
+                    else {
                         cout << "1. Criar Nova Pagina" << endl;
                         cout << "2. Acessar Minha Pagina Existente" << endl;
                         int pgOpt; cin >> pgOpt; cleanBuffer();
@@ -124,21 +200,22 @@ int main() {
                         if (pgOpt == 1) {
                             string pgName;
                             cout << "Nome da Pagina/Empresa: "; getline(cin, pgName);
-                            Page* novaPagina = new Page(pgName, vUser, "1234"); // Senha padrao interna
+                            // Cria passando 'userLogado' como owner
+                            Page* novaPagina = new Page(pgName, userLogado, "1234"); 
                             sn.add(novaPagina);
-                            currentPage = novaPagina; // <--- TROCA O CONTEXTO
+                            
+                            currentPage = novaPagina; // Troca contexto
                             cout << ">> Pagina Criada! Voce agora esta gerenciando: " << pgName << endl;
                             storage.save(&sn);
                         }
                         else if (pgOpt == 2) {
-                            // Procura pagina que tem este dono
-                            // (Funcao ineficiente, mas funciona pra teste)
                             bool found = false;
                             const auto& perfis = sn.getProfiles();
                             for (const auto& p : perfis) {
                                 Page* pag = dynamic_cast<Page*>(p.get());
-                                if (pag && pag->getOwner() && pag->getOwner()->getId() == vUser->getId()) {
-                                    currentPage = pag; // <--- TROCA O CONTEXTO
+                                // Verifica se a pagina existe e se o ID do dono bate
+                                if (pag && pag->getOwner() && pag->getOwner()->getId() == userLogado->getId()) {
+                                    currentPage = pag; // Troca contexto
                                     found = true;
                                     cout << ">> Gerenciando pagina: " << pag->getName() << endl;
                                     break;
@@ -146,6 +223,22 @@ int main() {
                             }
                             if (!found) cout << ">> Voce nao tem nenhuma pagina." << endl;
                         }
+                    }
+                    break;
+                }
+                case 6: {
+                    // --- TORNAR-SE VERIFICADO ---
+                    User* userLogado = dynamic_cast<User*>(currentUser);
+                    if (userLogado->isVerified()) {
+                        cout << ">> Voce ja eh verificado!" << endl;
+                    } else {
+                        cout << "Email comercial para validacao: ";
+                        string email; getline(cin, email);
+                        
+                        // Chama o metodo da SocialNetwork
+                        sn.verifyProfile(userLogado->getId(), email);
+                        // Nao precisa recarregar ponteiro, pois foi so uma mudanca de bool
+                        storage.save(&sn);
                     }
                     break;
                 }
@@ -159,8 +252,8 @@ int main() {
             showHeader("MODO PAGINA: " + currentPage->getName());
             cout << "1. Ver Perfil da Pagina" << endl;
             cout << "2. Postar como Pagina" << endl;
-            cout << "3. Editar Dados da Empresa (Categoria/Fundacao)" << endl;
-            cout << "4. VOLTAR PARA MEU PERFIL PESSOAL" << endl; // <--- VOLTAR
+            cout << "3. Editar Dados da Empresa" << endl;
+            cout << "4. VOLTAR PARA MEU PERFIL PESSOAL" << endl; 
             cout << "Escolha: ";
             cin >> option; cleanBuffer();
 
@@ -176,15 +269,15 @@ int main() {
                 }
                 case 3: {
                     cout << "Nova Categoria: "; string s; getline(cin, s);
-                    if(!s.empty()) currentPage->setSubtitle(s); // Usa o setSubtitle genericamente
+                    if(!s.empty()) currentPage->setSubtitle(s);
                     cout << "Nova Data Fundacao: "; getline(cin, s);
                     if(!s.empty()) currentPage->setStartDate(s);
-                    cout << ">> Dados da empresa atualizados." << endl;
+                    cout << ">> Dados atualizados." << endl;
                     storage.save(&sn);
                     break;
                 }
                 case 4:
-                    currentPage = nullptr; // <--- AQUI A MAGICA: Volta a ser nullptr, cai no menu anterior
+                    currentPage = nullptr; // Volta para o loop do Usuario
                     cout << ">> Voltando para perfil pessoal..." << endl;
                     break;
                 default: cout << "Opcao invalida" << endl;

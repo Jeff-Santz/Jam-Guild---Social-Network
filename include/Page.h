@@ -2,26 +2,26 @@
 #define PAGE_H
 
 #include "Profile.h"
-#include "VerifiedUser.h"
 #include "Post.h"
+#include "User.h"
 #include <iostream>
 #include <string>
 
 class Page : public Profile {
 private:
-    VerifiedUser* owner;
+    User* owner;
 
 public:
     // Pagina Nova
-    Page(std::string name, VerifiedUser* owner, std::string password);
+    Page(std::string name, User* owner, std::string password);
 
     //Carregar do BD
-    Page(std::string name, VerifiedUser* owner, std::string password, std::string icon, std::string bio, std::string subtitle, std::string startDate);
+    Page(std::string name, User* owner, std::string password, std::string icon, std::string bio, std::string subtitle, std::string startDate);
     virtual ~Page();
 
     void addPost(Post* p);
-    void setOwner(VerifiedUser* newOwner);
-    VerifiedUser* getOwner();
+    void setOwner(User* newOwner);
+    User* getOwner();
     virtual std::string getRole() const override { return "Page"; }
     virtual void print();
 };

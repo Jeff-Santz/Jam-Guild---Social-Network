@@ -5,7 +5,6 @@
 #include "sqlite3.h"
 #include "Profile.h"
 #include "User.h"
-#include "VerifiedUser.h"
 #include "Page.h"
 #include <iostream>
 #include <string>

@@ -1,5 +1,6 @@
 #include "NetworkStorage.h"
-#include "ImagePost.h" // Importante para carregar fotos!
+#include "ImagePost.h" 
+#include "Page.h" 
 #include <iostream>
 #include <map>
 
@@ -13,7 +14,8 @@ NetworkStorage::NetworkStorage(string dbFileName) {
     if (exit != SQLITE_OK) cerr << "Error opening DB" << endl;
     else cout << "Database opened successfully!" << endl;
 
-    // 1. Tabela PROFILES (Atualizada com colunas genericas)
+    // 1. Tabela PROFILES 
+    // ADICIONEI A COLUNA 'IS_VERIFIED' NO FINAL
     string sqlUsers = "CREATE TABLE IF NOT EXISTS PROFILES("
                       "ID INT PRIMARY KEY NOT NULL, "
                       "NAME TEXT NOT NULL, "
@@ -23,14 +25,15 @@ NetworkStorage::NetworkStorage(string dbFileName) {
                       "PASSWORD TEXT, "
                       "ICON_PATH TEXT, "
                       "BIO TEXT, "
-                      "SUBTITLE TEXT, "   // Genero ou Categoria
-                      "STARTDATE TEXT );";// Nascimento ou Fundacao
+                      "SUBTITLE TEXT, "   
+                      "STARTDATE TEXT, "
+                      "IS_VERIFIED INT );"; // 0 ou 1
     executeSQL(sqlUsers);
 
     // 2. Conexões
     executeSQL("CREATE TABLE IF NOT EXISTS CONNECTIONS(ID1 INT NOT NULL, ID2 INT NOT NULL);");
     
-    // 3. Posts (Com suporte a Imagem)
+    // 3. Posts
     string sqlPosts = "CREATE TABLE IF NOT EXISTS POSTS("
                       "TEXT TEXT NOT NULL, "
                       "DATE BIGINT NOT NULL, "
@@ -64,29 +67,35 @@ void NetworkStorage::save(SocialNetwork* sn) {
 
     for (const auto& u_ptr : profiles) {
         int ownerId = -1;
-        Page* pagePtr = dynamic_cast<Page*>(u_ptr.get());
         
+        // Verifica se é Página para pegar o ID do dono
+        Page* pagePtr = dynamic_cast<Page*>(u_ptr.get());
         if (pagePtr != nullptr && pagePtr->getOwner() != nullptr) {
             ownerId = pagePtr->getOwner()->getId();
+        }
+
+        // Verifica se é Usuário para pegar Email e Status
+        string email = "";
+        int isVerifiedInt = 0;
+        User* userPtr = dynamic_cast<User*>(u_ptr.get());
+        
+        if (userPtr) {
+            email = userPtr->getEmail(); // Usando seu getEmail()
+            isVerifiedInt = userPtr->isVerified() ? 1 : 0;
         }
 
         string sql = "INSERT INTO PROFILES VALUES (";
         sql += to_string(u_ptr->getId()) + ", ";
         sql += "'" + u_ptr->getName() + "', ";
         sql += "'" + u_ptr->getRole() + "', ";
-        
-        VerifiedUser* vPtr = dynamic_cast<VerifiedUser*>(u_ptr.get());
-        if (vPtr) sql += "'" + vPtr->getEmail() + "', ";
-        else sql += "'', "; 
-        
+        sql += "'" + email + "', "; 
         sql += to_string(ownerId) + ", ";
         sql += "'" + u_ptr->getPassword() + "', ";
         sql += "'" + u_ptr->getIconPath() + "', ";
-        
-        // NOVOS CAMPOS GENERICOS:
         sql += "'" + u_ptr->getBio() + "', ";
         sql += "'" + u_ptr->getSubtitle() + "', "; 
-        sql += "'" + u_ptr->getStartDate() + "');";
+        sql += "'" + u_ptr->getStartDate() + "', ";
+        sql += to_string(isVerifiedInt) + ");"; // Salva o booleano (0 ou 1)
 
         sqlite3_exec(db, sql.c_str(), nullptr, 0, nullptr);
     }
@@ -129,6 +138,7 @@ void NetworkStorage::load(SocialNetwork* sn) {
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, "SELECT * FROM PROFILES", -1, &stmt, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
+            // Leitura das colunas
             int id = sqlite3_column_int(stmt, 0);
             string name = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
             string type = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2)));
@@ -159,20 +169,29 @@ void NetworkStorage::load(SocialNetwork* sn) {
             if(sqlite3_column_text(stmt, 9))
                 startDate = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9)));
 
+            // Nova Coluna (Indice 10)
+            int isVerifiedVal = 0;
+            if(sqlite3_column_type(stmt, 10) != SQLITE_NULL)
+                isVerifiedVal = sqlite3_column_int(stmt, 10);
+            bool isVerified = (isVerifiedVal == 1);
+
             Profile* p = nullptr;
-            if (type == "Verified User") {
-                p = new VerifiedUser(name, email, password, icon, bio, subtitle, startDate);
-            }
-            else if (type == "Page") {
+
+            // Lógica unificada: Só existe Page ou User
+            if (type == "Page") {
                 p = new Page(name, nullptr, password, icon, bio, subtitle, startDate); 
                 if (ownerId != -1) pendingOwners[id] = ownerId;
             }
             else {
-                p = new User(name, password, icon, bio, subtitle, startDate);
+                // Aqui criamos o User, passando o status de verificação e o email
+                // IMPORTANTE: Seu construtor de User em User.cpp deve aceitar esses parametros nessa ordem
+                p = new User(name, password, icon, bio, subtitle, startDate, isVerified, email);
             }
 
-            p->setId(id);
-            sn->add(p);
+            if (p != nullptr) {
+                p->setId(id);
+                sn->add(p);
+            }
         }
     }
     sqlite3_finalize(stmt);
@@ -181,8 +200,12 @@ void NetworkStorage::load(SocialNetwork* sn) {
     for (auto const& [pageId, ownerId] : pendingOwners) {
         try {
             Page* pg = dynamic_cast<Page*>(sn->getProfile(pageId));
-            VerifiedUser* vu = dynamic_cast<VerifiedUser*>(sn->getProfile(ownerId));
-            if (pg && vu) pg->setOwner(vu);
+            // O Dono agora é do tipo User (que pode ser verificado ou não)
+            User* owner = dynamic_cast<User*>(sn->getProfile(ownerId));
+            
+            if (pg && owner) {
+                pg->setOwner(owner);
+            }
         } catch (...) {}
     }
 
@@ -191,7 +214,12 @@ void NetworkStorage::load(SocialNetwork* sn) {
     if (sqlite3_prepare_v2(db, "SELECT * FROM CONNECTIONS", -1, &stmtRel, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmtRel) == SQLITE_ROW) {
             try {
-                sn->getProfile(sqlite3_column_int(stmtRel, 0))->addContact(sn->getProfile(sqlite3_column_int(stmtRel, 1)));
+                int id1 = sqlite3_column_int(stmtRel, 0);
+                int id2 = sqlite3_column_int(stmtRel, 1);
+                Profile* p1 = sn->getProfile(id1);
+                Profile* p2 = sn->getProfile(id2);
+                
+                if (p1 && p2) p1->addContact(p2);
             } catch (...) {}
         }
     }
@@ -215,11 +243,12 @@ void NetworkStorage::load(SocialNetwork* sn) {
 
             try {
                 Profile* author = sn->getProfile(authorId);
-                
-                if (type == "IMAGE") {
-                    author->addPost(new ImagePost(txt, date, author, mediaPath));
-                } else {
-                    author->addPost(new Post(txt, date, author));
+                if (author) {
+                    if (type == "IMAGE") {
+                        author->addPost(new ImagePost(txt, date, author, mediaPath));
+                    } else {
+                        author->addPost(new Post(txt, date, author));
+                    }
                 }
             } catch (...) {}
         }

@@ -24,6 +24,10 @@ void Post::print() {
     cout << "Text: " << getText() << " - Date: " << getFormattedDate() << " - Owner: " << owner->getName() << endl;
 }
 
+void Post::setOwner(Profile* newOwner) {
+    this->owner = newOwner;
+}
+
 string Post::getFormattedDate() {
     char buffer[80];
     struct tm* timeinfo = localtime(&date);

@@ -14,6 +14,8 @@ public:
   ~SocialNetwork();
 
   Profile* login(std::string name, std::string password);
+  std::vector<Profile*> searchProfiles(std::string term);
+  void verifyProfile(int userId, std::string newEmail);
 
   const std::vector<std::unique_ptr<Profile>>& getProfiles() const;
   Profile* getProfile(int id); 

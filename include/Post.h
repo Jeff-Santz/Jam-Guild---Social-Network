@@ -17,6 +17,9 @@ public:
     Post(std::string text, std::time_t date, Profile* owner);
     virtual ~Post();                                     
     virtual void print();
+
+    // Setters
+    void setOwner(Profile* newOwner);
     
     // Getters
     std::string getText();
