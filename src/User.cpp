@@ -1,10 +1,11 @@
 #include "User.h"
+#include "Utils.h"
 #include <iostream>
 #include <string>
 using namespace std;
 
 User::User(std::string name, std::string password) 
-    : Profile(name, password, "user_default.png", "Hi! I am new here.", "Undefined", "01/01/2024") {
+    : Profile(name, Utils::hashPassword(password), "user_default.png", "Hi! I am new here.", "Undefined", "01/01/2024") {
     this->isVerifiedStatus = false;
     this->Email = "";
 }

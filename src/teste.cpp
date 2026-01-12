@@ -7,6 +7,7 @@
 #include "Page.h"
 #include "ImagePost.h" 
 #include "Utils.h"
+#include "Comment.h"
 
 using namespace std;
 
@@ -88,7 +89,8 @@ int main() {
             cout << "3. Editar Perfil (Bio, Foto, Info)" << endl;
             cout << "4. Buscar Pessoas / Adicionar Amigo" << endl;
             cout << "5. CRIAR/GERENCIAR PAGINA" << endl; 
-            cout << "6. Solicitar Verificacao (Selo Azul)" << endl; // Nova Opcao
+            cout << "6. Solicitar Verificacao (Selo Azul)" << endl;
+            cout << "7. Ver TimeLine" << endl; // Nova Opcao
             cout << "9. Logout" << endl;
             cout << "0. Sair e Salvar" << endl;
             cout << "Escolha: ";
@@ -263,6 +265,52 @@ int main() {
                         sn.verifyProfile(userLogado->getId(), email);
                         // Nao precisa recarregar ponteiro, pois foi so uma mudanca de bool
                         storage.save(&sn);
+                    }
+                    break;
+                }
+
+                case 7: { 
+                    vector<Post*> feed = sn.getTimeline(dynamic_cast<User*>(currentUser));
+                    
+                    showHeader("MEU FEED DE NOTICIAS");
+                    if (feed.empty()) {
+                        cout << "Nada para mostrar. Adicione amigos para ver postagens!" << endl;
+                    } else {
+                        for (size_t i = 0; i < feed.size(); i++) {
+                            cout << "\n[" << i << "] ";
+                            feed[i]->print(); // Mostra o post
+                            cout << "Curtidas: " << feed[i]->getLikesCount() << endl;
+                            
+                            // Mostrar últimos 2 comentários como "preview"
+                            auto& cmts = feed[i]->getComments();
+                            if(!cmts.empty()) {
+                                cout << "  Comentarios (" << cmts.size() << "):" << endl;
+                                cout << "  > " << cmts.back()->getAuthor()->getName() << ": " << cmts.back()->getText() << endl;
+                            }
+                            cout << "---------------------------------------" << endl;
+                        }
+
+                        cout << "\nDeseja interagir com algum post? (ID do post ou -1 para sair): ";
+                        int postIdx; cin >> postIdx; cleanBuffer();
+
+                        if (postIdx >= 0 && postIdx < feed.size()) {
+                            cout << "1. Curtir | 2. Comentar | 3. Ver todos os comentarios: ";
+                            int action; cin >> action; cleanBuffer();
+
+                            if (action == 1) {
+                                try {
+                                    feed[postIdx]->addLike(currentUser);
+                                    cout << "Voce curtiu isso!" << endl;
+                                } catch (exception& e) { cout << e.what() << endl; }
+                            } 
+                            else if (action == 2) {
+                                cout << "Escreva seu comentario: ";
+                                string cText; getline(cin, cText);
+                                feed[postIdx]->addComment(cText, currentUser);
+                                cout << "Comentario enviado!" << endl;
+                            }
+                            storage.save(&sn); // Salva as interações no banco
+                        }
                     }
                     break;
                 }

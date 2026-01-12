@@ -4,6 +4,7 @@
 #include "Page.h"
 #include "ProfileNotFound.h"
 #include "Utils.h"
+#include "Post.h"
 #include <fstream>
 #include <map>
 #include <algorithm>
@@ -148,7 +149,28 @@ const std::vector<std::unique_ptr<Profile>>& SocialNetwork::getProfiles() const 
     return this->profiles;
 }
 
+std::vector<Post*> SocialNetwork::getTimeline(User* user) {
+    std::vector<Post*> timeline;
 
+    // 1. Pega os posts do próprio usuário
+    for (Post* p : *user->getPosts()) {
+        timeline.push_back(p);
+    }
+
+    // 2. Pega os posts de todos os amigos
+    for (Profile* friendPtr : *user->getContacts()) {
+        for (Post* p : *friendPtr->getPosts()) {
+            timeline.push_back(p);
+        }
+    }
+
+    // 3. Ordena por data (mais recente primeiro) usando Lambda
+    std::sort(timeline.begin(), timeline.end(), [](Post* a, Post* b) {
+        return a->getDate() > b->getDate();
+    });
+
+    return timeline;
+}
 
 
 

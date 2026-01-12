@@ -1,5 +1,4 @@
 #include "Profile.h"
-#include "Utils.h"
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -11,7 +10,7 @@ int Profile::Lastid = 0;
 // Construtores e Destrutores
 Profile::Profile(string name, string password, string icon, string bio, string subtitle, string startDate) {
     this->name = name;
-    this->password = Utils::hashPassword(password);
+    this->password = password;
     this->iconPath = icon;
     this->bio = bio;
     this->subtitle = subtitle;

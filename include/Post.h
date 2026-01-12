@@ -3,20 +3,28 @@
 
 #include <string>
 #include <ctime>
+#include <vector>
+#include "Comment.h"
 
 class Profile;  // Forward declaration
 
 class Post {
-private:
+protected:
     std::string text;
     std::time_t date;
     Profile* owner;
+    std::vector<Profile*> likes;      
+    std::vector<Comment*> comments;  
 
 public:
     Post(std::string text, Profile* owner); 
     Post(std::string text, std::time_t date, Profile* owner);
     virtual ~Post();                                     
     virtual void print();
+    void addLike(Profile* p);
+    int getLikesCount() const;
+    void addComment(std::string text, Profile* author);
+    const std::vector<Comment*>& getComments() const;
 
     // Setters
     void setOwner(Profile* newOwner);
@@ -28,7 +36,6 @@ public:
     Profile* getOwner();
     virtual std::string getType() { return "TEXT"; }
     virtual std::string getMediaPath() { return ""; }
-    // std::string getContent();
 
 };
 
