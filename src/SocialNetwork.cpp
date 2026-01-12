@@ -9,6 +9,7 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include <sstream>
 
 using namespace std;
 
@@ -38,53 +39,54 @@ bool SocialNetwork::add (Profile* profile) {
   return true;
 }
 
-void SocialNetwork::print () {
-  cout << "==================================" << endl;
-  cout << "Social Network: " << profiles.size() << " profiles" << endl;
-  cout << "==================================" << endl;
-  if (profiles.size() == 0){
-    cout << "No profiles" << endl;
-    cout << "==================================" << endl;
-  } else {
-    for (auto& u_ptr : profiles){
-      u_ptr->print();
-      cout << "==================================" << endl;
+std::string SocialNetwork::getSnapshot() {
+    std::stringstream ss;
+    ss << "==================================\n";
+    ss << "Social Network: " << profiles.size() << " profiles\n";
+    ss << "==================================\n";
+    
+    if (profiles.empty()) {
+        ss << "No profiles\n";
+    } else {
+        for (auto& p : profiles) {
+            ss << "ID: " << p->getId() << " | Name: " << p->getName() 
+               << " | Type: " << p->getRole() << "\n";
+        }
     }
-  }
-  cout << endl;
+    ss << "==================================\n";
+    return ss.str();
 }
 
+std::string SocialNetwork::getStats() {
+    std::stringstream ss;
+    int users = 0;
+    int pages = 0;
 
-void SocialNetwork::printStatistics() {
-  std::map<string, int> stats;
+    for (auto& p : profiles) {
+        if (p->getRole() == "Page") pages++;
+        else users++;
+    }
 
-  for (auto& u_ptr : profiles) {
-      stats[u_ptr->getRole()]++;
-  }
-
-  cout << "=== Statistics ===" << endl;
-  for (auto const& [role, count] : stats) {
-      cout << role << ": " << count << endl;
-  }
-  cout << "Total Profiles: " << profiles.size() << endl;
+    ss << "--- STATS ---\n";
+    ss << "Users: " << users << "\n";
+    ss << "Pages: " << pages << "\n";
+    ss << "Total: " << profiles.size() << "\n";
+    return ss.str();
 }
 
-void SocialNetwork::verifyProfile(int userId, std::string newEmail) {
-  Profile* p = getProfile(userId);
-  
-  if (p == nullptr) {
-      cout << "Profile not found." << endl;
-      return;
-  }
-
-
-  if (User* u = dynamic_cast<User*>(p)) {
-      u->verify(newEmail);
-      cout << "Success! User " << u->getName() << " is now Verified." << endl;
-      
-  } else {
-      cout << "Error: Pages cannot be verified." << endl;
-  }
+bool SocialNetwork::verifyProfile(int userId, std::string newEmail) {
+    for (auto& u_ptr : profiles) {
+        if (u_ptr->getId() == userId) {
+            // Vendo se é um User
+            User* u = dynamic_cast<User*>(u_ptr.get());
+            if (u) {
+                u->verify(newEmail);
+                return true; 
+            }
+            return false; 
+        }
+    }
+    return false;
 }
 
 int calculateDistance(const std::string& s1, const std::string& s2) {

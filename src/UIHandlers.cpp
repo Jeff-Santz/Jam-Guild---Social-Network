@@ -335,13 +335,18 @@ void handleVerify(Profile* user, SocialNetwork& sn, NetworkStorage& storage) {
     }
 
     try {
-        sn.verifyProfile(userPtr->getId(), email);
+        bool sucesso = sn.verifyProfile(userPtr->getId(), email);
         
-        storage.save(&sn);
+        if (sucesso) {
+            storage.save(&sn); 
+            std::cout << ">> Parabens! O perfil " << userPtr->getName() << " agora esta VERIFICADO.\n";
+        } else {
+            std::cout << ">> Erro: Nao foi possivel verificar o perfil (ID invalido ou erro interno).\n";
+        }
 
-        std::cout << ">> Parabens! O perfil " << userPtr->getName() << " agora esta VERIFICADO.\n";
     } catch (const std::exception& e) {
-        std::cout << ">> Erro ao processar verificacao: " << e.what() << "\n";
+        std::cout << ">> Erro ao salvar alteracoes: " << e.what() << "\n";
+        std::cout << ">> O perfil foi verificado na RAM, mas nao no bd.\n";
     }
 }
 

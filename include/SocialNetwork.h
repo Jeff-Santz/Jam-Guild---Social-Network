@@ -17,10 +17,10 @@ public:
 
   Profile* login(int id, std::string password);
   std::vector<Profile*> searchProfiles(std::string term);
-  void verifyProfile(int userId, std::string newEmail);
+  bool verifyProfile(int userId, std::string newEmail);
   bool add(Profile* profile);
-  void print();
-  void printStatistics();
+  std::string getSnapshot();
+  std::string getStats();
 
   const std::vector<std::unique_ptr<Profile>>& getProfiles() const;
   std::vector<Page*> getPagesByOwner(int ownerId);
