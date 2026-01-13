@@ -19,7 +19,7 @@ set(CORE_SOURCES
     src/Comment.cpp
     src/ImagePost.cpp
     src/NetworkStorage.cpp
-    src/ContactsHandler.cpp  # Nome corrigido aqui
+    src/ContactHandlers.cpp 
     src/UIHandlers.cpp
     src/sqlite3.c
 )

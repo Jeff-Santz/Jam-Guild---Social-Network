@@ -4,7 +4,9 @@
 #include "SocialNetwork.h"
 #include "NetworkStorage.h"
 #include "User.h"
+#include "ContactHandlers.h"
 #include <iostream>
+#include <iterator>
 
 int main() {
     // =================================================================================
@@ -228,6 +230,31 @@ int main() {
         }
     });
 
+    // ROTA BUSCA DE PERFIS
+    // JSON: { "query": "Jeff" }
+    CROW_ROUTE(app, "/api/search").methods(crow::HTTPMethod::Post)
+    ([&sn](const crow::request& req){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        std::string query = x["query"].s();
+        
+        // Usa sua função existente de busca
+        std::vector<Profile*> results = sn.searchProfiles(query);
+
+        crow::json::wvalue jsonResp;
+        int i = 0;
+        for(auto* p : results) {
+            jsonResp[i]["id"] = p->getId();
+            jsonResp[i]["name"] = p->getName();
+            jsonResp[i]["icon"] = p->getIconPath();
+            jsonResp[i]["type"] = p->getRole();
+            // Adicionei isso para o frontend saber se é amigo ou não
+            jsonResp[i]["is_verified"] = (p->getRole() == "Verified User");
+            i++;
+        }
+        return crow::response(200, jsonResp);
+    });
 
     // =================================================================================
     // >>> ESPAÇO RESERVADO PARA FUTURAS ROTAS <<<
@@ -237,6 +264,153 @@ int main() {
     // =================================================================================
 
     // ... NOVAS ROTAS AQUI ...
+
+    // -------------------------------------------------------------------------
+    // GRUPO: AMIZADES E INTERAÇÕES
+    // -------------------------------------------------------------------------
+
+    // 1. ENVIAR PEDIDO DE AMIZADE
+    // JSON: { "userId": 1, "targetName": "Maria" }
+    CROW_ROUTE(app, "/api/friends/request").methods(crow::HTTPMethod::Post)
+    ([&sn, &storage](const crow::request& req){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        int userId = x["userId"].i();
+        std::string targetName = x["targetName"].s();
+
+        try {
+            Profile* sender = sn.getProfile(userId);
+            
+            // Usamos aquela busca otimizada que criamos
+            int targetId = sn.getIdByUsername(targetName);
+            if (targetId == -1) return crow::response(404, "Usuario alvo nao encontrado.");
+
+            Profile* receiver = sn.getProfile(targetId);
+
+            // Chama a lógica do ContactHandlers (que já salva no banco)
+            ContactHandlers::handleSendRequest(sender, sn, storage); 
+            // Obs: Tivemos que adaptar um pouco pq o seu handleSendRequest original pedia cin/cout.
+            // O ideal aqui seria chamar direto receiver->addContactRequest(sender) e salvar.
+            
+            // Lógica Direta (Mais segura para API):
+            receiver->addContactRequest(sender);
+            storage.save(&sn); // Salva o pedido
+
+            return crow::response(200, "Pedido de amizade enviado!");
+        } catch (const std::exception& e) {
+            return crow::response(400, e.what());
+        }
+    });
+
+    // 2. RESPONDER PEDIDO (ACEITAR / RECUSAR)
+    // JSON: { "userId": 1, "targetId": 5, "action": "ACCEPT" }
+    CROW_ROUTE(app, "/api/friends/respond").methods(crow::HTTPMethod::Post)
+    ([&sn, &storage](const crow::request& req){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        int userId = x["userId"].i();
+        int targetId = x["targetId"].i(); // Aqui usamos ID pq a notificação já sabe o ID de quem mandou
+        std::string action = x["action"].s();
+
+        try {
+            Profile* user = sn.getProfile(userId);
+            Profile* requester = sn.getProfile(targetId);
+
+            if (action == "ACCEPT") {
+                ContactHandlers::acceptFriendRequest(user, requester, sn, storage);
+                return crow::response(200, "Pedido aceito! Agora sao amigos.");
+            } 
+            else if (action == "REFUSE") {
+                ContactHandlers::refuseFriendRequest(user, requester, sn, storage);
+                return crow::response(200, "Pedido recusado.");
+            } 
+            else {
+                return crow::response(400, "Acao invalida. Use ACCEPT ou REFUSE.");
+            }
+        } catch (...) {
+            return crow::response(404, "Erro ao processar pedido.");
+        }
+    });
+
+    // ROTA CURTIR POST
+    // JSON: { "userId": 1, "authorId": 2, "postIndex": 0 }
+    CROW_ROUTE(app, "/api/posts/like").methods(crow::HTTPMethod::Post)
+    ([&sn, &storage](const crow::request& req){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        int userId = x["userId"].i();
+        int authorId = x["authorId"].i();
+        int postIndex = x["postIndex"].i();
+
+        try {
+            Profile* liker = sn.getProfile(userId);
+            Profile* author = sn.getProfile(authorId);
+
+            auto* posts = author->getPosts(); // Isso retorna uma std::list
+            
+            // Validação de Índice (Segurança)
+            if (postIndex < 0 || postIndex >= (int)posts->size()) {
+                return crow::response(404, "Post nao encontrado (indice invalido).");
+            }
+
+            // Avança até o post correto na lista
+            auto it = posts->begin();
+            std::advance(it, postIndex);
+            Post* targetPost = *it;
+
+            // Executa a ação
+            targetPost->addLike(liker);
+            
+            // Salva o estado
+            storage.save(&sn);
+
+            return crow::response(200, "Post curtido!");
+        } catch (const std::logic_error& e) {
+            return crow::response(400, e.what()); // Ex: "Já curtiu antes"
+        } catch (...) {
+            return crow::response(404, "Erro ao processar like.");
+        }
+    });
+
+    // ROTA COMENTAR
+    // JSON: { "userId": 1, "authorId": 2, "postIndex": 0, "text": "Legal!" }
+    CROW_ROUTE(app, "/api/posts/comment").methods(crow::HTTPMethod::Post)
+    ([&sn, &storage](const crow::request& req){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        int userId = x["userId"].i();
+        int authorId = x["authorId"].i();
+        int postIndex = x["postIndex"].i();
+        std::string text = x["text"].s();
+
+        if (text.empty()) return crow::response(400, "Comentario vazio.");
+
+        try {
+            Profile* commenter = sn.getProfile(userId);
+            Profile* author = sn.getProfile(authorId);
+
+            auto* posts = author->getPosts();
+            
+            if (postIndex < 0 || postIndex >= (int)posts->size()) {
+                return crow::response(404, "Post nao encontrado.");
+            }
+
+            auto it = posts->begin();
+            std::advance(it, postIndex);
+            Post* targetPost = *it;
+
+            targetPost->addComment(text, commenter);
+            storage.save(&sn);
+
+            return crow::response(200, "Comentario adicionado!");
+        } catch (...) {
+            return crow::response(404, "Erro ao comentar.");
+        }
+    });
 
 
     // =================================================================================
