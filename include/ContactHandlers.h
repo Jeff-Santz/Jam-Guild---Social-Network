@@ -14,6 +14,7 @@ namespace ContactHandlers {
     void handleInspectFriend(Profile* currentUser, SocialNetwork& sn);
     void handleListContacts(Profile* currentUser);
     void handleSendRequest(Profile* currentUser, SocialNetwork& sn, NetworkStorage& storage);
+    void coreSendFriendRequest(Profile* sender, Profile* target, SocialNetwork& sn, NetworkStorage& storage);
     void handleManageRequests(Profile* currentUser, SocialNetwork& sn, NetworkStorage& storage);
 }
 

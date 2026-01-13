@@ -59,9 +59,9 @@ Profile* SocialNetwork::createPage(User* creator, std::string pageName) {
 
     auto newPage = std::make_unique<Page>(pageName, creator);
     newPage->setId(newId);
+    usernameCache[pageName] = newId;
 
     profiles.push_back(std::move(newPage));
-
     return profiles.back().get();
 }
 

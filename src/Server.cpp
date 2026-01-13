@@ -162,6 +162,70 @@ int main() {
         }
     });
 
+    // ROTA: EDITAR PERFIL (PUT)
+    // JSON: { "bio": "Nova bio", "icon": "caminho/foto.png", "gender": "M" }
+    // Obs: Campos são opcionais. Se não mandar, mantém o antigo.
+    CROW_ROUTE(app, "/api/profile/<int>").methods(crow::HTTPMethod::Put)
+    ([&sn, &storage](const crow::request& req, int profileId){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        try {
+            Profile* p = sn.getProfile(profileId);
+
+            if (x.has("bio")) {
+                p->setBio(x["bio"].s()); 
+            }
+            if (x.has("icon")) {
+                p->setIconPath(x["icon"].s()); 
+            }
+
+            User* u = dynamic_cast<User*>(p);
+            if (u) {
+                if (x.has("gender")) {
+                    p->setSubtitle(x["gender"].s()); 
+                }
+            }
+
+            // 3. Salva
+            storage.save(&sn);
+
+            return crow::response(200, "Perfil atualizado!");
+
+        } catch (...) {
+            return crow::response(404, "Perfil nao encontrado");
+        }
+    });
+
+    // ROTA: VERIFICAR USUÁRIO (Admin/Debug)
+    // JSON: { "userId": 1, "email": "jeff@usp.br" }
+    CROW_ROUTE(app, "/api/profile/verify").methods(crow::HTTPMethod::Post)
+    ([&sn, &storage](const crow::request& req){
+        auto x = crow::json::load(req.body);
+        if (!x) return crow::response(400, "JSON invalido");
+
+        int userId = x["userId"].i();
+        
+        if (!x.has("email")) return crow::response(400, "Email obrigatorio para verificacao.");
+        std::string email = x["email"].s();
+
+        try {
+            Profile* p = sn.getProfile(userId);
+            User* u = dynamic_cast<User*>(p);
+
+            if (u) {
+                u->verify(email); 
+                
+                storage.save(&sn);
+                return crow::response(200, "Usuario verificado com sucesso!");
+            } else {
+                return crow::response(400, "Apenas usuarios (humanos) podem ser verificados.");
+            }
+        } catch (...) {
+            return crow::response(404, "Usuario nao encontrado");
+        }
+    });
+
     // ROTA CRIAR PÁGINA (Exige dono verificado)
     // JSON esperado: { "name": "Minha Empresa", "owner_id": 1 }
     CROW_ROUTE(app, "/api/pages").methods(crow::HTTPMethod::Post)
@@ -175,27 +239,20 @@ int main() {
         if (pageName.empty()) return crow::response(400, "Nome da pagina obrigatorio");
 
         try {
-            // 1. Busca o dono pelo ID
             Profile* p = sn.getProfile(ownerId);
             User* owner = dynamic_cast<User*>(p);
 
             if (!owner) {
                 return crow::response(400, "ID do proprietario invalido (nao e um usuario).");
             }
-
-            // 2. Tenta criar a página (A lógica de 'isVerified' roda aqui dentro)
             Profile* newPage = sn.createPage(owner, pageName);
-
-            // 3. Salva no banco
             storage.saveUser(newPage);
-
             crow::json::wvalue resp;
             resp["message"] = "Pagina criada com sucesso!";
             resp["id"] = newPage->getId();
             return crow::response(201, resp);
 
         } catch (const std::exception& e) {
-            // Aqui pegamos o erro "Apenas usuarios verificados..."
             return crow::response(403, e.what()); 
         }
     });
@@ -210,18 +267,12 @@ int main() {
         int userId = x["userId"].i();
         std::string text = x["text"].s();
         
-        // Validação básica
         if (text.empty()) return crow::response(400, "Texto nao pode ser vazio");
-
         try {
             Profile* author = sn.getProfile(userId);
             
-            // Cria o post (na memória)
             Post* newPost = new Post(text, author);
             author->addPost(newPost); // Vincula ao autor
-
-            // Salva TUDO no banco (para garantir que o post fique lá)
-            // Obs: Idealmente teríamos storage.savePost(), mas save() resolve por hora
             storage.save(&sn); 
 
             return crow::response(201, "Post criado!");
@@ -239,7 +290,6 @@ int main() {
 
         std::string query = x["query"].s();
         
-        // Usa sua função existente de busca
         std::vector<Profile*> results = sn.searchProfiles(query);
 
         crow::json::wvalue jsonResp;
@@ -249,7 +299,6 @@ int main() {
             jsonResp[i]["name"] = p->getName();
             jsonResp[i]["icon"] = p->getIconPath();
             jsonResp[i]["type"] = p->getRole();
-            // Adicionei isso para o frontend saber se é amigo ou não
             jsonResp[i]["is_verified"] = (p->getRole() == "Verified User");
             i++;
         }
@@ -274,30 +323,18 @@ int main() {
     CROW_ROUTE(app, "/api/friends/request").methods(crow::HTTPMethod::Post)
     ([&sn, &storage](const crow::request& req){
         auto x = crow::json::load(req.body);
-        if (!x) return crow::response(400, "JSON invalido");
-
         int userId = x["userId"].i();
         std::string targetName = x["targetName"].s();
 
         try {
             Profile* sender = sn.getProfile(userId);
             
-            // Usamos aquela busca otimizada que criamos
             int targetId = sn.getIdByUsername(targetName);
-            if (targetId == -1) return crow::response(404, "Usuario alvo nao encontrado.");
+            if (targetId == -1) return crow::response(404, "Usuario nao encontrado");
+            Profile* target = sn.getProfile(targetId);
+            ContactHandlers::coreSendFriendRequest(sender, target, sn, storage);
 
-            Profile* receiver = sn.getProfile(targetId);
-
-            // Chama a lógica do ContactHandlers (que já salva no banco)
-            ContactHandlers::handleSendRequest(sender, sn, storage); 
-            // Obs: Tivemos que adaptar um pouco pq o seu handleSendRequest original pedia cin/cout.
-            // O ideal aqui seria chamar direto receiver->addContactRequest(sender) e salvar.
-            
-            // Lógica Direta (Mais segura para API):
-            receiver->addContactRequest(sender);
-            storage.save(&sn); // Salva o pedido
-
-            return crow::response(200, "Pedido de amizade enviado!");
+            return crow::response(200, "Pedido enviado com sucesso!");
         } catch (const std::exception& e) {
             return crow::response(400, e.what());
         }
@@ -348,23 +385,17 @@ int main() {
         try {
             Profile* liker = sn.getProfile(userId);
             Profile* author = sn.getProfile(authorId);
+            auto* posts = author->getPosts(); 
 
-            auto* posts = author->getPosts(); // Isso retorna uma std::list
-            
-            // Validação de Índice (Segurança)
             if (postIndex < 0 || postIndex >= (int)posts->size()) {
                 return crow::response(404, "Post nao encontrado (indice invalido).");
             }
 
-            // Avança até o post correto na lista
             auto it = posts->begin();
             std::advance(it, postIndex);
             Post* targetPost = *it;
 
-            // Executa a ação
             targetPost->addLike(liker);
-            
-            // Salva o estado
             storage.save(&sn);
 
             return crow::response(200, "Post curtido!");
@@ -412,6 +443,82 @@ int main() {
         }
     });
 
+    // -------------------------------------------------------------------------
+    // GRUPO: DADOS AUXILIARES (UI)
+    // -------------------------------------------------------------------------
+
+    // ROTA: MINHAS NOTIFICAÇÕES
+    CROW_ROUTE(app, "/api/notifications/<int>")
+    ([&sn](int userId){
+        try {
+            Profile* p = sn.getProfile(userId);
+            User* u = dynamic_cast<User*>(p);
+            
+            if (!u) return crow::response(200, "[]"); 
+
+            const auto& notifs = u->getNotifications();
+            
+            crow::json::wvalue jsonResp;
+            int i = 0;
+            
+            for(const auto& n : notifs) {
+                jsonResp[i]["text"] = n->getMessage();
+                jsonResp[i]["date"] = n->getFormattedDate(); // Aproveitei que vi essa função no seu .h
+                jsonResp[i]["read"] = n->isRead();
+                i++;
+            }
+            return crow::response(200, jsonResp);
+        } catch (...) {
+            return crow::response(404, "Usuario nao encontrado");
+        }
+    });
+
+    // ROTA: MEUS AMIGOS (Aba Amigos e Sidebar)
+    CROW_ROUTE(app, "/api/friends/<int>")
+    ([&sn](int userId){
+        try {
+            Profile* p = sn.getProfile(userId);
+            auto* contacts = p->getContacts();
+
+            crow::json::wvalue jsonResp;
+            int i = 0;
+            for(auto* c : *contacts) {
+                jsonResp[i]["id"] = c->getId();
+                jsonResp[i]["name"] = c->getName();
+                jsonResp[i]["icon"] = c->getIconPath();
+                jsonResp[i]["subtitle"] = c->getSubtitle(); // Bio curta ou Cargo
+                i++;
+            }
+            return crow::response(200, jsonResp);
+        } catch (...) {
+            return crow::response(404, "Usuario nao encontrado");
+        }
+    });
+
+    // ROTA: MINHAS PÁGINAS (Sidebar - Atalhos)
+    CROW_ROUTE(app, "/api/pages/owned/<int>")
+    ([&sn](int userId){
+        // Como não temos uma lista direta "myPages" no User,
+        // vamos varrer os perfis procurando páginas que esse user é dono.
+        // (Não é o mais performático do mundo, mas para <1000 users é instantâneo)
+        
+        std::vector<Profile*> allProfiles = sn.searchProfiles(""); // Pega todos
+        crow::json::wvalue jsonResp;
+        int i = 0;
+
+        for (auto* p : allProfiles) {
+            Page* page = dynamic_cast<Page*>(p);
+            if (page) {
+                if (page->getOwner()->getId() == userId) {
+                    jsonResp[i]["id"] = page->getId();
+                    jsonResp[i]["name"] = page->getName();
+                    jsonResp[i]["icon"] = page->getIconPath();
+                    i++;
+                }
+            }
+        }
+        return crow::response(200, jsonResp);
+    });
 
     // =================================================================================
     // 3. START DO SERVIDOR

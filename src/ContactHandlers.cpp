@@ -133,6 +133,69 @@ void handleRemoveContact(Profile* currentUser, SocialNetwork& sn, NetworkStorage
     }
 }
 
+void coreSendFriendRequest(Profile* sender, Profile* target, SocialNetwork& sn, NetworkStorage& storage) {
+    if (!sender || !target) throw std::invalid_argument("Perfis invalidos.");
+
+    if (target == sender) {
+        throw std::invalid_argument("Voce nao pode enviar um pedido para si mesmo.");
+    }
+
+    auto* currentContacts = sender->getContacts();
+    for (auto* contact : *currentContacts) {
+        if (contact == target) throw std::invalid_argument("Voces ja estao conectados!");
+    }
+
+    Page* targetPage = dynamic_cast<Page*>(target);
+    if (targetPage) {
+        sender->addContact(target);
+        target->addContact(sender); 
+        
+        User* pageOwner = targetPage->getOwner(); 
+        if (pageOwner) {
+            if (pageOwner != sender) {
+                std::string msg = sender->getName() + " comecou a seguir sua pagina: " + targetPage->getName();
+                pageOwner->addNotification(new Notification(msg));
+            }
+        }        
+        storage.save(&sn);
+        return; 
+    }
+
+    bool theyAlreadyRequestedMe = false;
+    auto& myRequests = sender->getContactRequests();
+    
+    for (auto* req : myRequests) {
+        if (req == target) {
+            theyAlreadyRequestedMe = true;
+            break;
+        }
+    }
+
+    if (theyAlreadyRequestedMe) {
+        sender->addContact(target); 
+        sender->removeRequest(target); 
+        
+        User* uTarget = dynamic_cast<User*>(target);
+        if (uTarget) {
+            uTarget->addNotification(new Notification(sender->getName() + " aceitou seu pedido!"));
+        }
+    } 
+    else {        
+        auto& theirRequests = target->getContactRequests();
+        for(auto* req : theirRequests) {
+            if(req == sender) throw std::invalid_argument("Pedido ja enviado anteriormente. Aguarde.");
+        }
+        target->addContactRequest(sender);
+        User* uTarget = dynamic_cast<User*>(target);
+        if (uTarget) {
+            uTarget->addNotification(new Notification(sender->getName() + " enviou um pedido de amizade!"));
+        }
+    }
+
+    // 3. Salva no banco
+    storage.save(&sn);
+}
+
 void handleSendRequest(Profile* currentUser, SocialNetwork& sn, NetworkStorage& storage) {
     if (!currentUser) return;
 
@@ -143,86 +206,28 @@ void handleSendRequest(Profile* currentUser, SocialNetwork& sn, NetworkStorage& 
 
         std::vector<Profile*> results = sn.searchProfiles(targetName);
         
-        if (results.empty()) {
-            throw std::invalid_argument("Perfil nao encontrado com este nome.");
-        }
+        if (results.empty()) throw std::invalid_argument("Perfil nao encontrado.");
 
-        Utils::showHeader("RESULTADOS DA BUSCA");
+        Utils::showHeader("RESULTADOS");
         for (size_t i = 0; i < results.size(); i++) {
             std::cout << i << ") " << results[i]->getName() << " (@" << results[i]->getId() << ")\n";
         }
     
-        std::cout << "\nEscolha o numero (ou -1 para cancelar): ";
+        std::cout << "\nEscolha o numero (-1 cancelar): ";
         int choice;
-        if (!(std::cin >> choice)) {
-            Utils::cleanBuffer();
-            throw std::invalid_argument("Entrada invalida. Digite um numero.");
-        }
+        std::cin >> choice;
         Utils::cleanBuffer();
 
         if (choice == -1) return;
-        if (choice < 0 || choice >= (int)results.size()) {
-            throw std::invalid_argument("Opcao de perfil invalida.");
-        }
+        if (choice < 0 || choice >= (int)results.size()) throw std::invalid_argument("Opcao invalida.");
 
         Profile* target = results[choice];
-
-        if (target == currentUser) {
-            throw std::invalid_argument("Voce nao pode enviar um pedido para si mesmo.");
-        }
-
-        // 1. Checar se já são amigos para evitar pedidos redundantes
-        auto* currentContacts = currentUser->getContacts();
-        for (auto* contact : *currentContacts) {
-            if (contact == target) {
-                throw std::invalid_argument("Voces ja sao amigos!");
-            }
-        }
-
-        // 2. Lógica de Auto-match se o outro já me pediu
-        bool theyAlreadyRequestedMe = false;
-        auto& myRequests = currentUser->getContactRequests();
+        coreSendFriendRequest(currentUser, target, sn, storage);
         
-        for (auto* req : myRequests) {
-            if (req == target) {
-                theyAlreadyRequestedMe = true;
-                break;
-            }
-        }
+        std::cout << ">> Sucesso! Processo realizado.\n";
 
-        if (theyAlreadyRequestedMe) {
-            // Se o alvo já me pediu, aceitamos automaticamente
-            currentUser->addContact(target); 
-            currentUser->removeRequest(target); 
-            
-            std::cout << "\n>> Match! " << target->getName() << " ja tinha te enviado um pedido.\n";
-            std::cout << ">> Voces agora estao conectados!\n";
-            
-            User* uTarget = dynamic_cast<User*>(target);
-            if (uTarget) {
-                std::string msg = currentUser->getName() + " aceitou seu pedido!";
-                uTarget->addNotification(new Notification(msg));
-            }
-        } 
-        else {
-            // Fluxo normal de pedido de amizade
-            target->addContactRequest(currentUser);
-            
-            User* uTarget = dynamic_cast<User*>(target);
-            if (uTarget) {
-                std::string msg = currentUser->getName() + " enviou um pedido de amizade!";
-                uTarget->addNotification(new Notification(msg));
-            }
-            std::cout << ">> Sucesso: Pedido de amizade enviado para " << target->getName() << "!\n";
-        }
-
-        // 3. Salva a rede social após a alteração de estado
-        storage.save(&sn);
-
-    } catch (const std::invalid_argument& e) {
-        std::cout << "\n[!] Erro: " << e.what() << "\n";
     } catch (const std::exception& e) {
-        std::cout << "\n[!] Erro inesperado: " << e.what() << "\n";
+        std::cout << "\n[!] Erro: " << e.what() << "\n";
     }
 }
 
