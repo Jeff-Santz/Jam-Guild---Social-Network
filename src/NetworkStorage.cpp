@@ -256,14 +256,15 @@ void NetworkStorage::load(SocialNetwork* sn) {
 
             Profile* p = nullptr;
 
-            // Lógica unificada: Só existe Page ou User
-            if (type == "Page") {
-                p = new Page(name, nullptr, password, icon, bio, subtitle, startDate); 
+            if (type == "PAGE") {
+                // Passamos o ID, Nome, Dono(null), Icon, Bio, Subtitle, Date
+                // NÃO PASSAMOS MAIS A SENHA AQUI
+                p = new Page(id, name, nullptr, icon, bio, subtitle, startDate);
+                
                 if (ownerId != -1) pendingOwners[id] = ownerId;
             }
             else {
-                // Aqui criamos o User, passando o status de verificação e o email
-                // IMPORTANTE: Seu construtor de User em User.cpp deve aceitar esses parametros nessa ordem
+                // User continua normal
                 p = new User(name, password, icon, bio, subtitle, startDate, isVerified, email);
             }
 
@@ -274,14 +275,12 @@ void NetworkStorage::load(SocialNetwork* sn) {
         }
     }
     sqlite3_finalize(stmt);
-
+    
     // --- FASE EXTRA: RECONECTAR DONOS ---
     for (auto const& [pageId, ownerId] : pendingOwners) {
         try {
             Page* pg = dynamic_cast<Page*>(sn->getProfile(pageId));
-            // O Dono agora é do tipo User (que pode ser verificado ou não)
             User* owner = dynamic_cast<User*>(sn->getProfile(ownerId));
-            
             if (pg && owner) {
                 pg->setOwner(owner);
             }
@@ -297,7 +296,6 @@ void NetworkStorage::load(SocialNetwork* sn) {
                 int id2 = sqlite3_column_int(stmtRel, 1);
                 Profile* p1 = sn->getProfile(id1);
                 Profile* p2 = sn->getProfile(id2);
-                
                 if (p1 && p2) p1->addContact(p2);
             } catch (...) {}
         }
@@ -315,84 +313,103 @@ void NetworkStorage::load(SocialNetwork* sn) {
             string type = string((const char*)sqlite3_column_text(stmtPost, 4));
             string media = string((const char*)sqlite3_column_text(stmtPost, 5));
 
-            Profile* author = sn->getProfile(authorId);
-            if (author) {
-                Post* newPost;
-                if (type == "IMAGE") newPost = new ImagePost(txt, date, author, media);
-                else newPost = new Post(txt, date, author);
-
-                // --- CARREGAR CURTIDAS DO POST ---
-                sqlite3_stmt* stmtLike;
-                string sqlL = "SELECT PROFILE_ID FROM LIKES WHERE POST_ID = " + to_string(postDbId);
-                if (sqlite3_prepare_v2(db, sqlL.c_str(), -1, &stmtLike, nullptr) == SQLITE_OK) {
-                    while (sqlite3_step(stmtLike) == SQLITE_ROW) {
-                        Profile* liker = sn->getProfile(sqlite3_column_int(stmtLike, 0));
-                        if (liker) newPost->addLike(liker); // Use uma versão que não dê throw se possível
-                    }
-                    sqlite3_finalize(stmtLike);
-                }
-
-                // --- CARREGAR COMENTÁRIOS DO POST ---
-                sqlite3_stmt* stmtCmt;
-                string sqlC = "SELECT AUTHOR_ID, TEXT FROM COMMENTS WHERE POST_ID = " + to_string(postDbId);
-                if (sqlite3_prepare_v2(db, sqlC.c_str(), -1, &stmtCmt, nullptr) == SQLITE_OK) {
-                    while (sqlite3_step(stmtCmt) == SQLITE_ROW) {
-                        Profile* cmtAuthor = sn->getProfile(sqlite3_column_int(stmtCmt, 0));
-                        string cmtTxt = string((const char*)sqlite3_column_text(stmtCmt, 1));
-                        if (cmtAuthor) newPost->addComment(cmtTxt, cmtAuthor);
-                    }
-                    sqlite3_finalize(stmtCmt);
-                }
-
-                author->addPost(newPost);
-            }
-        }
-    }
-    // --- FASE 4: PEDIDOS DE AMIZADE ---
-    sqlite3_stmt* stmtReq;
-    if (sqlite3_prepare_v2(db, "SELECT * FROM FRIEND_REQUESTS", -1, &stmtReq, nullptr) == SQLITE_OK) {
-        while (sqlite3_step(stmtReq) == SQLITE_ROW) {
             try {
-                int senderId = sqlite3_column_int(stmtReq, 0);
-                int receiverId = sqlite3_column_int(stmtReq, 1);
-                
-                Profile* sender = sn->getProfile(senderId);
-                Profile* receiver = sn->getProfile(receiverId);
-                
-                if (sender && receiver) {
-                    receiver->addContactRequest(sender);
+                Profile* author = sn->getProfile(authorId);
+                if (author) {
+                    Post* newPost;
+                    if (type == "IMAGE") newPost = new ImagePost(txt, date, author, media);
+                    else newPost = new Post(txt, date, author);
+
+                    // Curtidas
+                    sqlite3_stmt* stmtLike;
+                    string sqlL = "SELECT PROFILE_ID FROM LIKES WHERE POST_ID = " + to_string(postDbId);
+                    if (sqlite3_prepare_v2(db, sqlL.c_str(), -1, &stmtLike, nullptr) == SQLITE_OK) {
+                        while (sqlite3_step(stmtLike) == SQLITE_ROW) {
+                            try {
+                                Profile* liker = sn->getProfile(sqlite3_column_int(stmtLike, 0));
+                                if (liker) newPost->addLike(liker);
+                            } catch (...) {}
+                        }
+                        sqlite3_finalize(stmtLike);
+                    }
+
+                    // Comentários
+                    sqlite3_stmt* stmtCmt;
+                    string sqlC = "SELECT AUTHOR_ID, TEXT FROM COMMENTS WHERE POST_ID = " + to_string(postDbId);
+                    if (sqlite3_prepare_v2(db, sqlC.c_str(), -1, &stmtCmt, nullptr) == SQLITE_OK) {
+                        while (sqlite3_step(stmtCmt) == SQLITE_ROW) {
+                            try {
+                                Profile* cmtAuthor = sn->getProfile(sqlite3_column_int(stmtCmt, 0));
+                                string cmtTxt = string((const char*)sqlite3_column_text(stmtCmt, 1));
+                                if (cmtAuthor) newPost->addComment(cmtTxt, cmtAuthor);
+                            } catch (...) {}
+                        }
+                        sqlite3_finalize(stmtCmt);
+                    }
+                    author->addPost(newPost);
                 }
             } catch (...) {}
         }
     }
     sqlite3_finalize(stmtPost);
 
-// --- FASE 5: NOTIFICAÇÕES ---
-    sqlite3_stmt* stmtNotif;
-    const char* sqlNotif = "SELECT USER_ID, MESSAGE FROM NOTIFICATIONS";
+     // --- FASE 4: PEDIDOS DE AMIZADE ---
+    sqlite3_stmt* stmtReq;
+    if (sqlite3_prepare_v2(db, "SELECT * FROM FRIEND_REQUESTS", -1, &stmtReq, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmtReq) == SQLITE_ROW) {
+            try {
+                int senderId = sqlite3_column_int(stmtReq, 0);
+                int receiverId = sqlite3_column_int(stmtReq, 1);
+                Profile* sender = sn->getProfile(senderId);
+                Profile* receiver = sn->getProfile(receiverId);
+                if (sender && receiver) receiver->addContactRequest(sender);
+            } catch (...) {}
+        }
+    }
+    sqlite3_finalize(stmtReq);
 
-    if (sqlite3_prepare_v2(db, sqlNotif, -1, &stmtNotif, nullptr) == SQLITE_OK) {
+    // --- FASE 5: NOTIFICAÇÕES ---
+    sqlite3_stmt* stmtNotif;
+    if (sqlite3_prepare_v2(db, "SELECT USER_ID, MESSAGE FROM NOTIFICATIONS", -1, &stmtNotif, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmtNotif) == SQLITE_ROW) {
             try {
                 int userId = sqlite3_column_int(stmtNotif, 0);
-                const unsigned char* text = sqlite3_column_text(stmtNotif, 1);
+                string message = string((const char*)sqlite3_column_text(stmtNotif, 1));
                 
-                if (text) {
-                    string message = string(reinterpret_cast<const char*>(text));
-                    
-                    Profile* profile = sn->getProfile(userId);
-                    User* user = dynamic_cast<User*>(profile);
-                    
-                    if (user) {
-                        user->addNotification(new Notification(message));
-                    }
-                }
-            } catch (const std::exception& e) {
-                std::cerr << "Erro ao carregar notificacao: " << e.what() << std::endl;
-            }
+                Profile* profile = sn->getProfile(userId);
+                User* user = dynamic_cast<User*>(profile);
+                if (user) user->addNotification(new Notification(message));
+            } catch (...) {}
         }
         sqlite3_finalize(stmtNotif); 
     }
     
     cout << "Data loaded successfully!" << endl;
+}
+
+void NetworkStorage::saveUser(Profile* p) {
+    std::string sql = "INSERT INTO Profiles (id, name, type, password) VALUES (?, ?, ?, ?);";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("Erro SQL Prepare: " + std::string(sqlite3_errmsg(db)));
+    }
+
+    sqlite3_bind_int(stmt, 1, p->getId());
+    sqlite3_bind_text(stmt, 2, p->getName().c_str(), -1, SQLITE_STATIC);
+    
+    std::string role = p->getRole();
+    std::string typeStr = (role == "PAGE") ? "PAGE" : "USER";
+    sqlite3_bind_text(stmt, 3, typeStr.c_str(), -1, SQLITE_STATIC);
+
+    // Bind da Senha
+    sqlite3_bind_text(stmt, 4, p->getPassword().c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        std::string err = sqlite3_errmsg(db);
+        sqlite3_finalize(stmt);
+        throw std::runtime_error("Erro ao inserir no banco: " + err);
+    }
+
+    sqlite3_finalize(stmt);
 }

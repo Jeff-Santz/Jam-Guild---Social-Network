@@ -21,6 +21,7 @@ public:
     NetworkStorage(std::string dbFileName);
     virtual ~NetworkStorage();
 
+    void saveUser(Profile* p);
     void save(SocialNetwork* sn);
     void load(SocialNetwork* sn);
 };

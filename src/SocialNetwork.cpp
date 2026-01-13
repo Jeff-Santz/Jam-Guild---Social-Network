@@ -6,7 +6,6 @@
 #include "Utils.h"
 #include "Post.h"
 #include <fstream>
-#include <map>
 #include <algorithm>
 #include <vector>
 #include <sstream>
@@ -21,7 +20,7 @@ SocialNetwork::~SocialNetwork() {
   cout << "SocialNetwork deleted " << endl;
 }
 
-Profile* SocialNetwork::login(int id, string passwordAttempt) {
+Profile* SocialNetwork::signIn(int id, string passwordAttempt) {
   string hashedAttempt = Utils::hashPassword(passwordAttempt);
 
     for (auto& u_ptr : profiles) {
@@ -32,11 +31,38 @@ Profile* SocialNetwork::login(int id, string passwordAttempt) {
     return nullptr; 
 }
 
-bool SocialNetwork::add (Profile* profile) {
+Profile* SocialNetwork::signUp(std::string username, std::string password) {
+    int newId = profiles.size() + 1;
+    auto newUser = std::make_unique<User>(username, password);
+    newUser->setId(newId);
+    usernameCache[username] = newId;
+
+    profiles.push_back(std::move(newUser));
+    return profiles.back().get();
+}
+
+bool SocialNetwork::add(Profile* profile) {
   if(profile == nullptr) return false;
+  usernameCache[profile->getName()] = profile->getId();
 
   profiles.push_back(std::unique_ptr<Profile>(profile));
   return true;
+}
+
+Profile* SocialNetwork::createPage(User* creator, std::string pageName) {
+    if (!creator) throw std::invalid_argument("Pages must have a valid creator User.");
+
+    if (!creator->isVerified()) {
+        throw std::runtime_error("Only verified users can create pages.");
+    }
+    int newId = profiles.size() + 1;
+
+    auto newPage = std::make_unique<Page>(pageName, creator);
+    newPage->setId(newId);
+
+    profiles.push_back(std::move(newPage));
+
+    return profiles.back().get();
 }
 
 std::string SocialNetwork::getSnapshot() {
@@ -184,7 +210,12 @@ std::vector<Post*> SocialNetwork::getTimeline(User* user) {
     return timeline;
 }
 
-
+int SocialNetwork::getIdByUsername(std::string name) {
+    if (usernameCache.count(name)) {
+        return usernameCache[name];
+    }
+    return -1; 
+}
 
 
 

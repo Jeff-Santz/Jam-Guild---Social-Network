@@ -99,7 +99,7 @@ void handleLogin(SocialNetwork* sn, Profile*& currentUser) {
         std::cout << "Senha: ";
         std::getline(std::cin, pass);
 
-        Profile* p = sn->login(id, pass);
+        Profile* p = sn->signIn(id, pass);
         
         if (!p) {
             throw std::invalid_argument("ID ou Senha invalidos!");
@@ -176,11 +176,11 @@ void handleCreatePage(Profile* currentUser, SocialNetwork& sn, NetworkStorage& s
     std::getline(std::cin, category);
 
     std::cout << "Senha da Pagina: ";
-    std::string pPass;
+    std::string pPass = "";
     std::getline(std::cin, pPass);
 
     // Cria o objeto Page passando o usuário logado como Owner
-    Page* newPage = new Page(pName, uPtr, pPass);
+    Page* newPage = new Page(pName, uPtr);
     newPage->setSubtitle(category);
     
     sn.add(newPage);

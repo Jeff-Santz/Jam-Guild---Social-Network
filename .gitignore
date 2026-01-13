@@ -1,14 +1,11 @@
 build/
 .vscode/
 old/
-
 *.exe
 *.o
 *.db
 *.sqlite
-
 *.zip
 *.rar
 *.7z
-
 *.log

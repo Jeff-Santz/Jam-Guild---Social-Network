@@ -68,3 +68,11 @@ void Utils::showHeader(const std::string& title) {
     std::cout << "   " << title << std::endl;
     std::cout << "=======================================" << std::endl;
 }
+
+std::string Utils::getCurrentDate() {
+    std::time_t t = std::time(nullptr);
+    char buffer[80];
+    struct tm* timeinfo = std::localtime(&t);
+    std::strftime(buffer, 80, "%d/%m/%Y", timeinfo);
+    return std::string(buffer);
+}

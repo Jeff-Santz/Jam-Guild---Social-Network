@@ -1,48 +1,43 @@
 #include "Page.h"
 #include "Profile.h"
+#include "Utils.h"
 #include <iostream>
-#include <string>
+
 using namespace std;
 
-
-Page::Page(string name, User* owner, string password) : Profile(name, password, "page_default.png", "Pagina Oficial", "Organizacao/Empresa", "Data de Fundacao") {
-    if (owner && !owner->isVerified()) {
-        throw std::logic_error("Only verified users can create pages!");
-    }
+// Construtor de Página NOVA
+// Note: Passamos "" como senha para o Profile. Página não tem senha própria.
+Page::Page(string name, User* owner) 
+    : Profile(name, "", "page_default.png", "Pagina Oficial", "Organizacao", Utils::getCurrentDate()) 
+{
     this->owner = owner;
-    if (owner) Profile::addContact(owner);
+    if (owner) {
+        Profile::addContact(owner); // O dono segue a página automaticamente
+    }
 }
 
-Page::Page(string name, User* owner, string password, string icon, string bio, string subtitle, string startDate) : Profile(name, password, icon, bio, subtitle, startDate) {
-    if (owner && !owner->isVerified()) {
-        throw std::logic_error("Only verified users can create pages!");
-    }
+// Construtor de Carga (BD)
+// Note: Recebemos o ID e forçamos ele (precisamos garantir que Profile tenha setId acessível ou usar o Lastid)
+Page::Page(int id, string name, User* owner, string icon, string bio, string subtitle, string startDate) 
+    : Profile(name, "", icon, bio, subtitle, startDate) 
+{
+    this->id = id; // Acesso direto pois 'id' é protected em Profile.h
     this->owner = owner;
-    if (owner) Profile::addContact(owner);
+    // Não adicionamos contato aqui pois isso já deve estar salvo na tabela de conexões
 }
 
 Page::~Page() {
+    // Destrutor padrão
 }
 
 void Page::addPost(Post* p) {
-	posts.push_back(p);
+    posts.push_back(p);
 }
 
 void Page::setOwner(User* newOwner) {
     this->owner = newOwner;
-
     if (newOwner != nullptr) {
         Profile::addContact(newOwner);
-    }
-}
-
-void Page::print() {
-    cout << "Name: " << getName() << " - id: " << getId();
-	
-    if (owner != nullptr) {
-        cout << " - Owner: " << owner->getName();
-    } else {
-        cout << " - Owner: [Unknown]";
     }
 }
 
@@ -50,6 +45,8 @@ User* Page::getOwner() {
     return this->owner;
 }
 
-
-
-
+void Page::print() {
+    cout << "[PAGE] " << getName() << " (ID: " << getId() << ")";
+    if (owner) cout << " | Admin: " << owner->getName();
+    cout << endl;
+}

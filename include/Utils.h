@@ -11,6 +11,8 @@ namespace Utils {
 
     void cleanBuffer();
     void showHeader(const std::string& title);
+
+    std::string getCurrentDate();
 }
 
 #endif
