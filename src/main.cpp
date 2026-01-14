@@ -1,102 +1,140 @@
 #include <iostream>
-#include "SocialNetwork.h"
-#include "NetworkStorage.h"
-#include "UIHandlers.h"
-#include "ContactHandlers.h"
-#include "Utils.h"
+#include "Core/Database.h"
+#include "Core/Translation.h"
+#include "Auth/User.h"
+#include "Content/Post.h" // <--- Importante!
 
 int main() {
-    // 1. Inicialização do Sistema
-    SocialNetwork sn;
-    NetworkStorage storage("rede_social.db");
+    auto* tr = Core::Translation::getInstance();
+    auto* db = Core::Database::getInstance();
     
-    // 2. Carga inicial de dados
-    try {
-        storage.load(&sn);
-    } catch (const std::exception& e) {
-        std::cerr << ">> Aviso: Iniciando com banco de dados vazio." << std::endl;
+    // ---------------------------------------------------------
+    // 1. INICIALIZAÇÃO (TABELAS)
+    // ---------------------------------------------------------
+    
+    // Tabela Users
+    std::string sqlUser = 
+        "CREATE TABLE IF NOT EXISTS users ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "username TEXT NOT NULL UNIQUE, "
+        "email TEXT UNIQUE, "
+        "password_hash TEXT NOT NULL, "
+        "bio TEXT, "
+        "language TEXT DEFAULT 'pt_BR', "
+        "birth_date TEXT, "
+        "creation_date TEXT, "
+        "is_active INTEGER DEFAULT 1"
+        ");";
+    db->execute(sqlUser);
+
+    // Tabela Friendships
+    std::string sqlFriends = 
+        "CREATE TABLE IF NOT EXISTS friendships ("
+        "user_id_1 INTEGER, "
+        "user_id_2 INTEGER, "
+        "since_date TEXT, "
+        "PRIMARY KEY (user_id_1, user_id_2), "
+        "FOREIGN KEY(user_id_1) REFERENCES users(id), "
+        "FOREIGN KEY(user_id_2) REFERENCES users(id)"
+        ");";
+    db->execute(sqlFriends);
+
+    // Tabela Posts (A NOVIDADE)
+    std::string sqlPosts = 
+        "CREATE TABLE IF NOT EXISTS posts ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "author_id INTEGER NOT NULL, "
+        "content TEXT NOT NULL, "
+        "creation_date TEXT, "
+        "FOREIGN KEY(author_id) REFERENCES users(id)"
+        ");";
+    
+    if(db->execute(sqlPosts)) {
+        std::cout << tr->get("TABLE_CREATED") << " (Posts)" << std::endl;
     }
 
-    Profile* currentUser = nullptr;
-    Page* currentPage = nullptr;
-    int option = -1;
+    // ---------------------------------------------------------
+    // 2. TESTE DE CADASTRO
+    // ---------------------------------------------------------
+    std::cout << "\n>> [TESTE 1] Verificando usuario principal..." << std::endl;
 
-    // 3. Loop Principal
-    while (option != 0) {
-        system("clear || cls"); // Mantém o terminal limpo
-
-        // --- CENÁRIO 1: NINGUÉM LOGADO ---
-        if (currentUser == nullptr) {
-            option = UIHandlers::showVisitorMenu();
-
-            if (option == 1) {
-                UIHandlers::handleLogin(&sn, currentUser);
-                if (currentUser) {
-                    std::cout << "Pressione Enter para ir ao Dashboard...";
-                    getchar();
-                }
-            } else if (option == 2) {
-                UIHandlers::handleCreateAccount(&sn, storage);
-                std::cout << "Pressione Enter para continuar...";
-                getchar();
-            }
-        } 
+    Auth::User tempUser;
+    if (!Auth::User::findByEmail("jeff@exemplo.com", tempUser)) {
+        Auth::User novoUser;
+        novoUser.setUsername("JeffMaster");
+        novoUser.setEmail("jeff@exemplo.com");
+        novoUser.setPassword("senha123"); // Criptografa
+        novoUser.setBirthDate("1999-12-31"); 
         
-        // --- CENÁRIO 2: USUÁRIO LOGADO ---
-        else if (currentPage == nullptr) {
-            UIHandlers::showNotifications(currentUser);
-            option = UIHandlers::showUserMenu(currentUser);
-
-            switch (option) {
-                case 1: UIHandlers::handleViewProfile(currentUser); break;
-                case 2: UIHandlers::handleCreatePost(currentUser, storage, sn); break;
-                case 3: UIHandlers::handleSearchUsers(currentUser, sn, storage); break;
-                case 4: UIHandlers::handleTimeline(currentUser, sn, storage); break;
-                case 5: UIHandlers::handleEditProfile(currentUser, storage, sn); break;
-                case 6: Utils::showHeader("CENTRAL DE AMIZADES");
-                    std::cout << "1) Ver Meus Contatos\n";
-                    std::cout << "2) Enviar Pedido (Busca)\n";
-                    std::cout << "3) Gerenciar Pedidos Recebidos\n";
-                    std::cout << "4) Remover Contato\n";
-                    std::cout << "5) Visitar Perfil de Amigo\n"; 
-                    std::cout << "0) Voltar\nEscolha: ";
-                    
-                    int cOp; std::cin >> cOp; Utils::cleanBuffer();
-                    
-                    if (cOp == 1) ContactHandlers::handleListContacts(currentUser);
-                    else if (cOp == 2) UIHandlers::handleSearchUsers(currentUser, sn, storage);
-                    else if (cOp == 3) ContactHandlers::handleManageRequests(currentUser, sn, storage);
-                    else if (cOp == 4) ContactHandlers::handleRemoveContact(currentUser, sn, storage);
-                    else if (cOp == 5) ContactHandlers::handleInspectFriend(currentUser, sn); // <-- E ESTA
-                    break;
-                    case 7: UIHandlers::handleVerify(currentUser, sn, storage); break;
-                    case 8: UIHandlers::handleCreatePage(currentUser, sn, storage); break;
-                    case 9: UIHandlers::handleManageMyPages(currentUser, sn, currentPage); break;
-                    case 0: 
-                        currentUser = nullptr; 
-                        break;
-                }
-            if (option != 0) {
-                std::cout << "\n[Pressione Enter para continuar]";
-                getchar();
-            }
+        if (novoUser.save()) {
+            std::cout << ">> Criado com sucesso! Nascido em: " << novoUser.getBirthDate() << std::endl;
         }
+    } else {
+        std::cout << ">> Usuario ja existe. Nascido em: " << tempUser.getBirthDate() << std::endl;
+    }
+
+    // ---------------------------------------------------------
+    // 3. TESTE DE LOGIN
+    // ---------------------------------------------------------
+    std::cout << "\n>> [TESTE 2] Tentando Logar..." << std::endl;
+    Auth::User usuarioLogado;
+    
+    if (Auth::User::findByEmail("jeff@exemplo.com", usuarioLogado)) {
+        std::cout << ">> Usuario encontrado: " << usuarioLogado.getUsername() << " (ID: " << usuarioLogado.getId() << ")" << std::endl;
         
-        // --- CENÁRIO 3: GERENCIANDO PÁGINA ---
-        else {
-            option = UIHandlers::showPageMenu(currentPage);
-            switch (option) {
-                case 1: UIHandlers::handleCreatePost(currentPage, storage, sn); break;
-                case 2: ContactHandlers::handleListContacts(currentPage); break;
-                case 3: UIHandlers::handleEditProfile(currentPage, storage, sn); break;
-                case 0: currentPage = nullptr; break;
-            }
+        if (usuarioLogado.checkPassword("senha123")) {
+            std::cout << ">> LOGIN APROVADO!" << std::endl;
+        } else {
+            std::cout << ">> SENHA INCORRETA!" << std::endl;
+            return 1;
         }
     }
 
-    // 4. Salvar antes de fechar
-    storage.save(&sn);
-    std::cout << "Sistema encerrado e dados salvos com sucesso!" << std::endl;
+    // ---------------------------------------------------------
+    // 4. TESTE SOCIAL
+    // ---------------------------------------------------------
+    std::cout << "\n>> [TESTE 3] Sistema Social..." << std::endl;
+
+    Auth::User amiga;
+    if (!Auth::User::findByEmail("lapis@gem.com", amiga)) {
+        amiga.setUsername("LapisLazuli");
+        amiga.setEmail("lapis@gem.com");
+        amiga.setPassword("ocean123");
+        amiga.save();
+        std::cout << ">> Usuario 'LapisLazuli' criado." << std::endl;
+    }
+
+    if (usuarioLogado.addFriend(&amiga)) {
+        std::cout << ">> [SUCESSO] " << usuarioLogado.getUsername() << " agora segue " << amiga.getUsername() << std::endl;
+    } else {
+        std::cout << ">> [INFO] Amizade ja registrada." << std::endl;
+    }
+
+    // ---------------------------------------------------------
+    // 5. TESTE DE POSTS (O QUE FALTOU)
+    // ---------------------------------------------------------
+    std::cout << "\n>> [TESTE 4] Criando Posts..." << std::endl;
+
+    // Jeff cria um post
+    Content::Post post1;
+    post1.setAuthorId(usuarioLogado.getId());
+    post1.setContent("Ola mundo! Minha Engine agora tem Posts e Criptografia!");
+    
+    if (post1.save()) {
+        std::cout << ">> Post salvo no DB com ID: " << post1.getId() << std::endl;
+    }
+
+    // Ler a timeline
+    std::cout << ">> Timeline de " << usuarioLogado.getUsername() << ":" << std::endl;
+    std::vector<Content::Post> timeline = Content::Post::getPostsByUserId(usuarioLogado.getId());
+
+    if (timeline.empty()) {
+        std::cout << "   (Nenhum post encontrado)" << std::endl;
+    }
+
+    for (const auto& p : timeline) {
+        std::cout << "   [" << p.getCreationDate() << "] " << p.getContent() << std::endl;
+    }
 
     return 0;
 }

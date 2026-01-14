@@ -1,11 +1,19 @@
+# Compilação e Build
 build/
-.vscode/
-old/
+bin/
 *.exe
 *.o
+*.obj
+
+# Arquivos de IDE
+.vscode/
+.idea/
+
+# Banco de Dados (NÃO versione o banco real, ele muda localmente)
 *.db
 *.sqlite
-*.zip
-*.rar
-*.7z
-*.log
+*.sqlite3
+
+# Arquivos Temporários
+Megazord*.txt
+Status_Atual*.txt

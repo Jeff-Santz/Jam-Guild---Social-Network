@@ -1,41 +1,38 @@
 cmake_minimum_required(VERSION 3.10)
-project(SocialNetworkApp)
+project(SocialEngine VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 1. Configura a pasta include globalmente
+# 1. Configurar Bibliotecas (SQLite, Crow, Asio)
+# Adiciona a pasta libs/sqlite como biblioteca
+add_library(sqlite_lib STATIC libs/sqlite/sqlite3.c)
+target_include_directories(sqlite_lib PUBLIC libs/sqlite)
+
+# Adiciona pasta de headers globais
 include_directories(include)
 
-# 2. Motor do Sistema (Ajustado o nome de ContactsHandler.cpp)
-set(CORE_SOURCES
-    src/SocialNetwork.cpp
-    src/User.cpp
-    src/Profile.cpp
-    src/Post.cpp
-    src/Page.cpp
-    src/Notification.cpp
-    src/Utils.cpp
-    src/ProfileNotFound.cpp
-    src/Comment.cpp
-    src/ImagePost.cpp
-    src/NetworkStorage.cpp
-    src/ContactHandlers.cpp 
-    src/UIHandlers.cpp
-    src/sqlite3.c
+# 2. Encontrar todos os arquivos .cpp novos (Modular)
+file(GLOB_RECURSE SOURCES 
+    "src/Core/*.cpp"
+    "src/Auth/*.cpp"
+    "src/Social/*.cpp"
+    "src/Content/*.cpp"
+    "src/Governance/*.cpp"
+    "src/API/*.cpp"
+    "src/main.cpp"
 )
 
-# --- EXECUTÁVEIS ---
+# 3. Criar o Executável
+add_executable(SocialEngine ${SOURCES})
 
-# 1. Versão Terminal
-add_executable(JamGuildCLI src/main.cpp ${CORE_SOURCES})
-
-# 2. Versão Servidor Web
-add_executable(JamGuildServer src/Server.cpp ${CORE_SOURCES})
-
-# Link da biblioteca de rede do Windows (Obrigatório para o Crow)
+# 4. Linkar Bibliotecas
+# Linka SQLite e Threads/Network (Necessário pro Crow)
 if(WIN32)
-    target_link_libraries(JamGuildServer ws2_32 mswsock)
+    target_link_libraries(SocialEngine PRIVATE sqlite_lib ws2_32 mswsock)
+else()
+    target_link_libraries(SocialEngine PRIVATE sqlite_lib pthread)
 endif()
 
-# 3. Versão Testes
-add_executable(JamGuildTester src/teste_api.cpp ${CORE_SOURCES})
+# Mensagem de sucesso
+message(STATUS ">> Social Engine build configured successfully! <<")
