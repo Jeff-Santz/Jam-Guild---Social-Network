@@ -39,18 +39,25 @@ namespace Auth {
         std::string getTableName() const override { return "users"; }
         
         // Search Methods
-        // Email search
         static bool findByEmail(const std::string& email, User& outUser);
-
-        // ID Search
         static bool findById(int id, User& outUser);
+        static std::vector<User> search(const std::string& query);
 
         // password verification
         bool checkPassword(const std::string& inputPass);
     
         // Friend management
+        bool sendFriendRequest(User* other);
+        bool acceptFriendRequest(User* other);
+        bool removeOrRejectFriend(User* other);
         bool addFriend(User* newFriend);
         std::vector<User> getFriends();
+        std::vector<User> getPendingRequests();
+        // Status: -1 (Nothing), 0 (Pendant), 1 (Friends)
+        int checkFriendshipStatus(User* other);
+
+        // Profile update
+        bool update();
     };
 
 }

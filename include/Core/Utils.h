@@ -1,0 +1,18 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <string>
+
+namespace Core {
+
+    class Utils {
+    public:
+        static std::string validateISO(std::string date);
+        static std::string formatForDisplay(std::string isoDate);
+
+        static std::string getCurrentDateTime();
+    };
+
+}
+
+#endif

@@ -1,5 +1,7 @@
 #include "Content/Post.h"
+#include "Content/Notification.h"
 #include "Core/Database.h"
+#include "Core/Logger.h"
 #include <iostream>
 
 namespace Content {
@@ -11,7 +13,6 @@ namespace Content {
 
     bool Post::save() {
         auto* db = Core::Database::getInstance();
-
         if (this->id == -1) {
             std::string sql = "INSERT INTO posts (author_id, content, creation_date) VALUES (" +
                 std::to_string(this->authorId) + ", '" + 
@@ -20,6 +21,22 @@ namespace Content {
 
             if (db->execute(sql)) {
                 this->id = db->getLastInsertId();
+                
+                // Log
+                Core::Logger::log(this->authorId, "NEW_POST", "Criou um post ID: " + std::to_string(this->id));
+
+                // Friends notification
+                std::string sqlFriends = "SELECT user_id_1 FROM friendships WHERE user_id_2 = " + std::to_string(this->authorId) + " AND status = 1 "
+                                         "UNION "
+                                         "SELECT user_id_2 FROM friendships WHERE user_id_1 = " + std::to_string(this->authorId) + " AND status = 1;";
+                
+                auto callback = [&](int, char** argv, char**) {
+                    int friendId = std::stoi(argv[0]);
+                    Content::Notification::create(friendId, this->authorId, Content::Notification::FRIEND_POST, this->id, "NOTIF_FRIEND_POST");
+                    return 0;
+                };
+                db->query(sqlFriends, callback);
+
                 return true;
             }
         }
@@ -46,5 +63,5 @@ namespace Content {
 
         db->query(sql, callback);
         return postsList;
-    }
+    };
 }
