@@ -59,13 +59,14 @@ namespace Auth {
         auto* db = Core::Database::getInstance();
         
         if (this->id == -1) {
-            std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, creation_date) VALUES ('" +
+            std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, isPrivate, creation_date) VALUES ('" +
                 this->username + "', '" + 
                 this->email + "', '" + 
                 this->passwordHash + "', '" + 
                 this->bio + "', '" + 
                 this->language + "', '" +
-                this->birthDate + "', '" +   
+                this->birthDate + "', '" +
+                (this->isPrivate ? "1" : "0") + "', '" +   
                 this->creationDate + "');"; 
 
             if (db->execute(sql)) {

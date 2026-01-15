@@ -10,6 +10,8 @@
 #include "Core/Database.h"
 #include "Core/Logger.h"
 #include <vector>
+#include <algorithm>
+#include <cctype>
 
 namespace API {
 
@@ -36,7 +38,6 @@ namespace API {
             auto x = crow::json::load(req.body);
             
             if (!x) return crow::response(400, tr->get("ERR_JSON"));
-
             Auth::User newUser;
             if (!x.has("username") || !x.has("email") || !x.has("password")) {
                  return crow::response(400, tr->get("ERR_MISSING"));
@@ -54,6 +55,10 @@ namespace API {
                     std::string errorMsg = tr->get("ERR_PREFIX_DATE") + std::string(e.what());
                     return crow::response(400, errorMsg);
                 }
+            }
+
+            if (x.has("is_private")) {
+                newUser.setPrivate(x["is_private"].b());
             }
 
             if (newUser.save()) {
@@ -117,7 +122,6 @@ namespace API {
         ([](const crow::request& req){
             auto* tr = Core::Translation::getInstance();
             auto x = crow::json::load(req.body);
-
             if (!x) return crow::response(400, tr->get("ERR_JSON"));
 
             if (!x.has("author_id") || !x.has("content")) {
@@ -132,6 +136,13 @@ namespace API {
                 newPost.setCommunityId(x["community_id"].i());
             }
 
+            // TAGS
+            if (x.has("tags")) {
+                std::string rawTags = x["tags"].s();
+                std::transform(rawTags.begin(), rawTags.end(), rawTags.begin(), ::tolower);
+                newPost.setTags(rawTags);
+            }
+
             if (newPost.save()) {
                 return crow::response(201, tr->get("MSG_POST_CREATED"));
             } else {
@@ -143,36 +154,44 @@ namespace API {
         // ROTA 5: LER FEED (Com Contagem de Likes)
         // ---------------------------------------------------------
         CROW_ROUTE(app, "/api/feed/<int>")
-        ([](int userId){
+        ([](const crow::request& req, int userId) {
+            auto* tr = Core::Translation::getInstance();
             auto* db = Core::Database::getInstance();
-            std::vector<crow::json::wvalue> jsonList;
+            
+            char* viewerParam = req.url_params.get("viewer");
+            int viewerId = viewerParam ? std::stoi(viewerParam) : userId;
 
-            // SQL com JOIN para pegar o nome da comunidade, se existir
-            std::string sql = "SELECT p.id, p.content, p.creation_date, p.community_id, c.name "
-                            "FROM posts p "
-                            "LEFT JOIN communities c ON p.community_id = c.id "
-                            "WHERE p.author_id = " + std::to_string(userId) + " ORDER BY p.id DESC;";
+            std::string sql = 
+                "SELECT p.id, p.content, u.username, COALESCE(c.name, 'Pessoal') as origin, "
+                "(SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) as likes_count, "
+                "CASE "
+                "   WHEN u.id IN (SELECT user_id_1 FROM friendships WHERE user_id_2 = " + std::to_string(viewerId) + " AND status = 1 "
+                "                 UNION SELECT user_id_2 FROM friendships WHERE user_id_1 = " + std::to_string(viewerId) + " AND status = 1) THEN 50 " 
+                "   WHEN p.community_id IN (SELECT community_id FROM community_members WHERE user_id = " + std::to_string(viewerId) + ") THEN 50 " 
+                "   ELSE 0 "
+                "END + "
+                "((SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) * 2) + " 
+                "COALESCE((SELECT SUM(ui.weight) FROM user_interests ui WHERE ui.user_id = " + std::to_string(viewerId) + " AND p.tags LIKE '%' || ui.tag || '%'), 0) * 10 " // Bônus de Tags
+                "as algorithm_score "
+                "FROM posts p "
+                "JOIN users u ON p.author_id = u.id "
+                "LEFT JOIN communities c ON p.community_id = c.id "
+                "WHERE (u.is_private = 0 OR u.id = " + std::to_string(viewerId) + " OR u.id IN (SELECT user_id_1 FROM friendships WHERE user_id_2 = " + std::to_string(viewerId) + " AND status = 1)) " // Privacidade 
+                "ORDER BY algorithm_score DESC LIMIT 50;"; 
 
-            db->query(sql, [&](int argc, char** argv, char** colNames) {
-                crow::json::wvalue postJson;
-                postJson["id"] = std::stoi(argv[0]);
-                postJson["content"] = argv[1];
-                postJson["date"] = argv[2];
-                
-                // Identificação da Comunidade
-                if (argv[3] != nullptr) {
-                    postJson["community_id"] = std::stoi(argv[3]);
-                    postJson["community_name"] = argv[4]; 
-                    postJson["is_community_post"] = true;
-                } else {
-                    postJson["is_community_post"] = false;
-                }
-                postJson["likes_count"] = Content::Like::getCount(std::stoi(argv[0]));
-                jsonList.push_back(std::move(postJson));
+            std::vector<crow::json::wvalue> feedList;
+            db->query(sql, [&](int argc, char** argv, char**) {
+                crow::json::wvalue p;
+                p["id"] = std::stoi(argv[0]);
+                p["content"] = argv[1];
+                p["author"] = argv[2];
+                p["origin"] = argv[3];
+                p["likes"] = std::stoi(argv[4]);
+                feedList.push_back(std::move(p));
                 return 0;
             });
 
-            return crow::json::wvalue(jsonList);
+            return crow::response(crow::json::wvalue(feedList));
         });
 
         // ---------------------------------------------------------
@@ -557,9 +576,25 @@ namespace API {
 
         // ROTA 17: TIMELINE DA COMUNIDADE
         CROW_ROUTE(app, "/api/communities/<int>/posts")
-        ([](int commId){
+        ([](const crow::request& req, int commId){
+            auto* tr = Core::Translation::getInstance();
             auto* db = Core::Database::getInstance();
             std::vector<crow::json::wvalue> postsList;
+
+            char* viewerParam = req.url_params.get("viewer");
+            int viewerId = viewerParam ? std::stoi(viewerParam) : -1;
+
+            bool isPrivate = false;
+            db->query("SELECT is_private FROM communities WHERE id = " + std::to_string(commId), [&](int argc, char** argv, char**){
+                isPrivate = (std::stoi(argv[0]) == 1);
+                return 0;
+            });
+
+            if (isPrivate) {
+                if (!Social::Community::isMember(commId, viewerId)) {
+                    return crow::response(403, tr->get("ERR_PRIVATE_COMMUNITY"));
+                }
+            }
 
             std::string sql = "SELECT p.id, p.author_id, p.content, p.creation_date, u.username "
                             "FROM posts p JOIN users u ON p.author_id = u.id "
@@ -580,7 +615,7 @@ namespace API {
             };
 
             db->query(sql, callback);
-            return crow::json::wvalue(postsList);
+            return crow::response(crow::json::wvalue(postsList));
         });
 
         // ROTA 18: HOME PERSONALIZADA (Meus posts + Amigos + Comunidades)
@@ -747,6 +782,42 @@ namespace API {
             }
 
             return crow::response(400, tr->get("ERR_PROCESS_REQ"));
+        });
+
+        // ---------------------------------------------------------
+        // ROTA 24: SUGESTÕES DE CONTEUDO
+        // ---------------------------------------------------------
+        CROW_ROUTE(app, "/api/discover/<int>")
+        ([](int userId){
+            auto* db = Core::Database::getInstance();
+            std::vector<crow::json::wvalue> suggestions;
+
+            // Query de Descoberta:
+            // 1. Pega posts de perfis PÚBLICOS
+            // 2. Que não sejam o próprio usuário
+            // 3. Que NÃO sejam amigos (para sugerir gente nova)
+            std::string sql = 
+                "SELECT p.id, p.content, u.username, "
+                "(SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) as total_likes "
+                "FROM posts p "
+                "JOIN users u ON p.author_id = u.id "
+                "WHERE u.is_private = 0 "
+                "AND u.id != " + std::to_string(userId) + " "
+                "AND u.id NOT IN (SELECT user_id_1 FROM friendships WHERE user_id_2 = " + std::to_string(userId) + " "
+                "                 UNION SELECT user_id_2 FROM friendships WHERE user_id_1 = " + std::to_string(userId) + ") "
+                "ORDER BY total_likes DESC LIMIT 20;";
+
+            db->query(sql, [&](int argc, char** argv, char**) {
+                crow::json::wvalue item;
+                item["post_id"] = std::stoi(argv[0]);
+                item["content"] = argv[1];
+                item["author"] = argv[2];
+                item["likes"] = std::stoi(argv[3]);
+                suggestions.push_back(std::move(item));
+                return 0;
+            });
+
+            return crow::response(crow::json::wvalue(suggestions));
         });
 
         // ROTA DE DEBUG: Ver o que tem no banco de dados (Comunidades e Posts)

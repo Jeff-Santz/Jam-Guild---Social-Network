@@ -18,9 +18,9 @@ bool Post::save() {
         // Se communityId for -1, inserimos NULL no banco
         std::string commSql = (this->communityId == -1) ? "NULL" : std::to_string(this->communityId);
 
-        std::string sql = "INSERT INTO posts (author_id, community_id, content, creation_date) VALUES (" +
-                          std::to_string(this->authorId) + ", " + commSql + ", '" + 
-                          this->content + "', '" + this->creationDate + "');";
+        std::string sql = "INSERT INTO posts (author_id, community_id, content, tags, creation_date) VALUES (" +
+                  std::to_string(this->authorId) + ", " + commSql + ", '" + 
+                  this->content + "', '" + this->tags + "', '" + this->creationDate + "');";
 
         if (db->execute(sql)) {
             this->id = db->getLastInsertId();

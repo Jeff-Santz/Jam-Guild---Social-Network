@@ -25,7 +25,7 @@ namespace Social {
         Community();
         bool update();
         bool save() override;
-        bool isMember(int communityId, int userId);
+        static bool isMember(int communityId, int userId);
         bool requestJoin(int userId);
         static bool checkPermission(int communityId, int userId, CommunityRole requiredRole);
         bool updateRole(int targetUserId, CommunityRole newRole, int requesterId);

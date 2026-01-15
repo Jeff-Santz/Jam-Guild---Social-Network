@@ -100,6 +100,8 @@ namespace Core {
                 messages["MSG_POST_CREATED"]    = "Post Publicado!";
                 messages["MSG_USER_DELETED"] = "Sua conta e todos os seus dados foram excluidos permanentemente.";
                 messages["ERR_DELETE_MASTER"] = "Voce nao pode excluir sua conta sendo dono de uma comunidade. Transfira a posse ou exclua a comunidade primeiro.";
+                messages["ERR_PRIVATE_PROFILE"]   = "Esse usuario tem o perfil privado";
+                messages["ERR_PRIVATE_COMMUNITY"] = "Essa pagina tem seu perfil privado";
 
                 break;
 
@@ -179,6 +181,8 @@ namespace Core {
                 messages["MSG_POST_CREATED"]    = "Post Published!";
                 messages["MSG_USER_DELETED"] = "Your account and all its data have been permanently deleted.";
                 messages["ERR_DELETE_MASTER"] = "You cannot delete your account while owning a community. Transfer ownership or delete the community first.";
+                messages["ERR_PRIVATE_PROFILE"]   = "This user has a private profile";
+                messages["ERR_PRIVATE_COMMUNITY"] = "This page has its profile set to private";
 
                 break;
         }

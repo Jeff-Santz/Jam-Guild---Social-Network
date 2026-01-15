@@ -15,6 +15,7 @@ namespace Auth {
         std::string bio;
         std::string language;
         std::string birthDate;
+        bool isPrivate = false;
 
     public:
         User();
@@ -26,6 +27,7 @@ namespace Auth {
         std::string getBio() const { return bio; }
         std::string getLanguage() const { return language; }
         std::string getBirthDate() const { return birthDate; }
+        bool getPrivate() const { return isPrivate; }
 
         // Setters
         void setUsername(const std::string& u) { username = u; }
@@ -35,6 +37,7 @@ namespace Auth {
         void setPassword(const std::string& plainPassword);
         void setPasswordHash(const std::string& h) { passwordHash = h; }
         void setBirthDate(const std::string& date) { birthDate = date; }
+        void setPrivate(bool status) { isPrivate = status; }
 
         bool save() override;
         std::string getTableName() const override { return "users"; }

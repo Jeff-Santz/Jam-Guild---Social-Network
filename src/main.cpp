@@ -10,15 +10,16 @@ int main() {
     // --- CRIAÇÃO DE TABELAS (SCHEMA) ---
     
     // USERS
-db->execute("CREATE TABLE IF NOT EXISTS users ("
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                "username TEXT, "
-                "email TEXT, "
-                "password_hash TEXT, " 
-                "bio TEXT, "
-                "birth_date TEXT, "
-                "language TEXT DEFAULT 'en_US', "
-                "creation_date TEXT);"); 
+    db->execute("CREATE TABLE IF NOT EXISTS users ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "username TEXT, "
+                    "email TEXT UNIQUE, "
+                    "password_hash TEXT, " 
+                    "bio TEXT, "
+                    "birth_date TEXT, "
+                    "is_private INTEGER DEFAULT 0, "  // 0 Publico, 1 Privado
+                    "language TEXT DEFAULT 'en_US', "
+                    "creation_date TEXT);"); 
 
     // POSTS
     db->execute("CREATE TABLE IF NOT EXISTS posts ("
@@ -26,6 +27,7 @@ db->execute("CREATE TABLE IF NOT EXISTS users ("
             "author_id INTEGER, "
             "community_id INTEGER DEFAULT NULL, " 
             "content TEXT, "
+            "tags TEXT, "
             "creation_date TEXT, "
             "FOREIGN KEY(author_id) REFERENCES users(id), "
             "FOREIGN KEY(community_id) REFERENCES communities(id));");
@@ -101,6 +103,14 @@ db->execute("CREATE TABLE IF NOT EXISTS users ("
                 "request_date TEXT, "
                 "status INTEGER DEFAULT 0, "
                 "PRIMARY KEY (community_id, user_id));");
+
+    // TABELA DE INTERESSES (Cérebro do Algoritmo)
+    db->execute("CREATE TABLE IF NOT EXISTS user_interests ("
+                "user_id INTEGER, "
+                "tag TEXT, "
+                "weight INTEGER DEFAULT 0, "
+                "PRIMARY KEY (user_id, tag), "
+                "FOREIGN KEY(user_id) REFERENCES users(id));");
 
     // 2. Configura Tradução
     Core::Translation::getInstance()->setLanguage(Core::Language::PT_BR); // Padrão
