@@ -77,6 +77,26 @@ namespace API {
         });
 
         // ---------------------------------------------------------
+        // ROTA AUXILIAR: SIMULAR VALIDAÇÃO DE EMAIL
+        // ---------------------------------------------------------
+        CROW_ROUTE(app, "/api/verify_me").methods(crow::HTTPMethod::Post)
+        ([](const crow::request& req){
+            auto* tr = Core::Translation::getInstance(); // Necessário instanciar!
+            
+            int userId = Router::authenticate(req);
+            if (userId == -1) return crow::response(401, tr->get("ERR_AUTH_FAILED"));
+
+            Auth::User user;
+            user.setId(userId);
+            
+            if (user.markEmailAsVerified()) {
+                return crow::response(200, tr->get("MSG_EMAIL_VERIFIED"));
+            }
+            
+            return crow::response(500, tr->get("SQL_ERROR"));
+        });
+
+        // ---------------------------------------------------------
         // ROTA 3.1: EXCLUIR CONTA
         // ---------------------------------------------------------
         CROW_ROUTE(app, "/api/user").methods(crow::HTTPMethod::Delete)
@@ -408,19 +428,31 @@ namespace API {
             return crow::json::wvalue(logs);
         });
 
-        // ROTA 15: CRIAR COMUNIDADE
+        // ---------------------------------------------------------
+        // ROTA 15: CRIAR COMUNIDADE 
+        // ---------------------------------------------------------
         CROW_ROUTE(app, "/api/communities").methods(crow::HTTPMethod::Post)
         ([](const crow::request& req){
             auto* tr = Core::Translation::getInstance();
             int userId = Router::authenticate(req);
-            if (userId == -1) return crow::response(401);
+            
+            if (userId == -1) return crow::response(401, tr->get("ERR_AUTH_FAILED"));
+
+            // VERIFICAÇÃO EXTRA DE E-MAIL
+            Auth::User user;
+            if (Auth::User::findById(userId, user)) {
+                if (!user.getVerified()) {
+                    // Agora usa a chave de tradução!
+                    return crow::response(403, tr->get("ERR_NOT_VERIFIED")); 
+                }
+            }
 
             auto x = crow::json::load(req.body);
-            if (!x || !x.has("name")) return crow::response(400);
+            if (!x || !x.has("name")) return crow::response(400, tr->get("ERR_MISSING"));
 
             Social::Community comm;
             comm.setName(x["name"].s());
-            comm.setOwnerId(userId); // <--- O Dono é quem está logado
+            comm.setOwnerId(userId);
             if (x.has("description")) comm.setDescription(x["description"].s());
             
             if (comm.save()) return crow::response(201, tr->get("MSG_COMM_CREATED"));
@@ -428,7 +460,7 @@ namespace API {
         });
 
         // ---------------------------------------------------------
-        // ROTA 15.2: SOLICITAR ENTRADA (O que deu 404)
+        // ROTA 15.2: SOLICITAR ENTRADA
         // ---------------------------------------------------------
         CROW_ROUTE(app, "/api/communities/request").methods(crow::HTTPMethod::Post)
         ([](const crow::request& req){

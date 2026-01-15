@@ -7,7 +7,7 @@
 int main() {
 
     Core::Utils::loadEnv(".env");
-    
+
     // 1. Inicializa o Banco de Dados
     auto* db = Core::Database::getInstance();
 
@@ -22,6 +22,7 @@ int main() {
                     "bio TEXT, "
                     "birth_date TEXT, "
                     "is_private INTEGER DEFAULT 0, "  // 0 Publico, 1 Privado
+                    "is_verified INTEGER DEFAULT 0, "
                     "language TEXT DEFAULT 'en_US', "
                     "creation_date TEXT);"); 
 

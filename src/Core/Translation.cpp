@@ -97,6 +97,8 @@ namespace Core {
                 messages["ERR_PROCESS_REQ"]         = "Erro ao processar acao no pedido de entrada.";
                 messages["MSG_COMM_JOINED"]         = "Você entrou na comunidade!";
                 messages["MSG_MEMBER_REMOVED"]      = "Membro removido com sucesso.";
+                messages["ERR_NOT_VERIFIED"]        = "Voce precisa verificar seu email para criar comunidades.";
+                messages["MSG_EMAIL_VERIFIED"]      = "Seu email foi verificado com sucesso";
 
                 // --- NOVAS CHAVES ---
                 messages["MSG_PROFILE_UPDATED"] = "Perfil Atualizado!";
@@ -182,6 +184,8 @@ namespace Core {
                 messages["ERR_PROCESS_REQ"]         = "Error processing action on join request.";
                 messages["MSG_COMM_JOINED"]         = "You have joined the community!";
                 messages["MSG_MEMBER_REMOVED"]      = "Member removed successfully.";
+                messages["ERR_NOT_VERIFIED"]        = "You need to verify your email to create communities";
+                messages["MSG_EMAIL_VERIFIED"]      = "Your email have been sucessfully verified";
 
                 // --- NEW KEYS ---
                 messages["MSG_PROFILE_UPDATED"] = "Profile Updated!";
