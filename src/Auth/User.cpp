@@ -13,6 +13,39 @@ namespace Auth {
         this->bio = "";
     }
 
+    bool User::deleteAccount(int userId) {
+        auto* db = Core::Database::getInstance();
+
+        // Verifying if the user is owner of any community
+        bool isOwner = false;
+        std::string checkSql = "SELECT COUNT(*) FROM communities WHERE owner_id = " + std::to_string(userId) + ";";
+        db->query(checkSql, [&](int argc, char** argv, char**) {
+            if (std::stoi(argv[0]) > 0) isOwner = true;
+            return 0;
+        });
+        if (isOwner) return false;
+
+        db->execute("BEGIN TRANSACTION;");
+        try {
+            std::string uid = std::to_string(userId);
+
+            db->execute("DELETE FROM friendships WHERE user_id_1 = " + uid + " OR user_id_2 = " + uid + ";");
+            db->execute("DELETE FROM likes WHERE user_id = " + uid + ";");
+            db->execute("DELETE FROM comments WHERE author_id = " + uid + ";");
+            db->execute("DELETE FROM likes WHERE post_id IN (SELECT id FROM posts WHERE author_id = " + uid + ");");
+            db->execute("DELETE FROM posts WHERE author_id = " + uid + ";");
+            db->execute("DELETE FROM community_members WHERE user_id = " + uid + ";");
+            db->execute("DELETE FROM notifications WHERE user_id = " + uid + " OR sender_id = " + uid + ";");
+            db->execute("DELETE FROM users WHERE id = " + uid + ";");
+
+            db->execute("COMMIT;");
+            return true;
+        } catch (...) {
+            db->execute("ROLLBACK;");
+            return false;
+        }
+    }
+
     void User::setPassword(const std::string& plainPassword) {
         this->passwordHash = Core::Crypto::sha256(plainPassword + GLOBAL_SALT);
     }

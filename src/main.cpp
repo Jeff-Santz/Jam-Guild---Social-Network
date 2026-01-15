@@ -21,7 +21,14 @@ db->execute("CREATE TABLE IF NOT EXISTS users ("
                 "creation_date TEXT);"); 
 
     // POSTS
-    db->execute("CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, author_id INTEGER, content TEXT, creation_date TEXT, FOREIGN KEY(author_id) REFERENCES users(id));");
+    db->execute("CREATE TABLE IF NOT EXISTS posts ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "author_id INTEGER, "
+            "community_id INTEGER DEFAULT NULL, " 
+            "content TEXT, "
+            "creation_date TEXT, "
+            "FOREIGN KEY(author_id) REFERENCES users(id), "
+            "FOREIGN KEY(community_id) REFERENCES communities(id));");
 
     // FRIENDSHIPS (Com Status)
     db->execute("CREATE TABLE IF NOT EXISTS friendships (user_id_1 INTEGER, user_id_2 INTEGER, status INTEGER DEFAULT 0, since_date TEXT, PRIMARY KEY (user_id_1, user_id_2), FOREIGN KEY(user_id_1) REFERENCES users(id), FOREIGN KEY(user_id_2) REFERENCES users(id));");
@@ -38,7 +45,7 @@ db->execute("CREATE TABLE IF NOT EXISTS users ("
                 "FOREIGN KEY(author_id) REFERENCES users(id), "
                 "FOREIGN KEY(parent_id) REFERENCES comments(id));");
 
-    // LIKES (Quem curtiu o quê) <--- ESTA É A QUE ESTÁ FALTANDO PROVAVELMENTE!
+    // LIKES 
     db->execute("CREATE TABLE IF NOT EXISTS likes ("
                 "post_id INTEGER, "
                 "user_id INTEGER, "
@@ -69,6 +76,31 @@ db->execute("CREATE TABLE IF NOT EXISTS users ("
                 "is_read INTEGER DEFAULT 0, "
                 "creation_date TEXT, "
                 "FOREIGN KEY(user_id) REFERENCES users(id));");
+
+    // COMUNIDADES
+    db->execute("CREATE TABLE IF NOT EXISTS communities ("
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "name TEXT, "
+                "description TEXT, "
+                "owner_id INTEGER, "
+                "is_private INTEGER DEFAULT 0, "
+                "creation_date TEXT);");
+    
+    // Membros da comunidade
+    db->execute("CREATE TABLE IF NOT EXISTS community_members ("
+                "community_id INTEGER, "
+                "user_id INTEGER, "
+                "role INTEGER, "
+                "join_date TEXT, "
+                "PRIMARY KEY (community_id, user_id));");
+
+    // Tabela para solicitações de entrada (Join Requests)
+    db->execute("CREATE TABLE IF NOT EXISTS community_requests ("
+                "community_id INTEGER, "
+                "user_id INTEGER, "
+                "request_date TEXT, "
+                "status INTEGER DEFAULT 0, "
+                "PRIMARY KEY (community_id, user_id));");
 
     // 2. Configura Tradução
     Core::Translation::getInstance()->setLanguage(Core::Language::PT_BR); // Padrão

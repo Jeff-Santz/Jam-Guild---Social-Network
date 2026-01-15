@@ -42,7 +42,7 @@ namespace Core {
                 messages["ERR_JSON"]          = "JSON Invalido ou mal formatado";
                 messages["ERR_MISSING"]       = "Dados obrigatorios faltando ou invalidos";
                 messages["MSG_CREATED"]       = "Usuario Criado com Sucesso";
-                messages["ERR_CONFLICT"]      = "Erro: Email ou Username ja existem";
+                messages["ERR_CONFLICT"]      = "Erro: Email ja vinculado a outra conta";
                 messages["MSG_LOGIN_OK"]      = "Login Aprovado";
                 messages["ERR_WRONG_PASS"]    = "Senha Incorreta";
                 messages["ERR_USER_NOT_FOUND"]= "Usuario nao encontrado";
@@ -76,10 +76,31 @@ namespace Core {
                 messages["LOG_BIO_UPDATED"]   = "atualizou a bio.";
                 messages["LOG_UNK_ACT"]       = "realizou uma acao.";
 
+                // -- COMUNIDADES ---
+                messages["MSG_MEMBER_REMOVED"] = "Membro removido da comunidade.";
+                messages["MSG_COMM_CREATED"]    = "Comunidade criada com sucesso!";
+                messages["ERR_ALREADY_MEMBER"]  = "Erro: Este usuário já faz parte da comunidade.";
+                messages["COMM_REQUEST_JOIN"]   = "solicitou entrar na comunidade.";
+                messages["APROVE_COMM_MEMBER"]   = "foi aprovado para entrar na comunidade.";
+                messages["ERR_PERMISSION_DENIED"]   = "Erro: Permissão negada para esta ação.";
+                messages["MSG_ROLE_UPDATED"]    = "Função atualizada com sucesso!";
+                messages["NOTIF_COMMUNITY_NEW_POST"] = "postou na comunidade da qual você é membro.";
+                messages["MSG_LEAVE_COMM"]    = "Você saiu da comunidade.";
+                messages["ERR_LEAVE_COMM"]    = "Erro: Falha ao processar sua saída.";
+                messages["MSG_COMM_DELETED"]        = "Comunidade e todos os seus dados foram excluidos.";
+                messages["MSG_TRANSFER_OK"]         = "Posse da comunidade transferida com sucesso.";
+                messages["ERR_MASTER_LEAVE"]        = "O dono nao pode sair da comunidade sem transferir a posse.";
+                messages["ERR_NOT_MASTER"]          = "Apenas o dono (Master Admin) pode realizar esta acao.";
+                messages["MSG_REQ_ACCEPTED"]        = "Solicitacao de entrada aceita!";
+                messages["MSG_REQ_REJECTED"]        = "Solicitacao de entrada recusada.";
+                messages["ERR_PROCESS_REQ"]         = "Erro ao processar acao no pedido de entrada.";
+
                 // --- NOVAS CHAVES ---
                 messages["MSG_PROFILE_UPDATED"] = "Perfil Atualizado!";
                 messages["MSG_POST_CREATED"]    = "Post Publicado!";
-                
+                messages["MSG_USER_DELETED"] = "Sua conta e todos os seus dados foram excluidos permanentemente.";
+                messages["ERR_DELETE_MASTER"] = "Voce nao pode excluir sua conta sendo dono de uma comunidade. Transfira a posse ou exclua a comunidade primeiro.";
+
                 break;
 
             case Language::EN_US:
@@ -100,7 +121,7 @@ namespace Core {
                 messages["ERR_JSON"]          = "Invalid or malformed JSON";
                 messages["ERR_MISSING"]       = "Missing or invalid required data";
                 messages["MSG_CREATED"]       = "User Created Successfully";
-                messages["ERR_CONFLICT"]      = "Error: Email or Username already exists";
+                messages["ERR_CONFLICT"]      = "Error: Email already linked to another account";
                 messages["MSG_LOGIN_OK"]      = "Login Approved";
                 messages["ERR_WRONG_PASS"]    = "Incorrect Password";
                 messages["ERR_USER_NOT_FOUND"]= "User not found";
@@ -134,10 +155,31 @@ namespace Core {
                 messages["LOG_BIO_UPDATED"]   = "updated the bio.";
                 messages["LOG_UNK_ACT"]       = "performed an action.";
 
+                // --- COMMUNITIES ---
+                messages["MSG_MEMBER_REMOVED"] = "Member removed from the community.";
+                messages["MSG_COMM_CREATED"]    = "Community created successfully!";
+                messages["ERR_ALREADY_MEMBER"]  = "Error: This user is already a community member.";
+                messages["COMM_REQUEST_JOIN"]   = "requested to join the community.";
+                messages["APROVE_COMM_MEMBER"]   = "was approved to join the community.";
+                messages["ERR_PERMISSION_DENIED"]   = "Error: Permission denied for this action.";
+                messages["MSG_ROLE_UPDATED"]    = "Role updated successfully!";
+                messages["NOTIF_COMMUNITY_NEW_POST"] = "posted in the community you are a member of.";
+                messages["MSG_LEAVE_COMM"]    = "You have left the community.";
+                messages["ERR_LEAVE_COMM"]    = "Error: Failed to process your exit.";
+                messages["MSG_COMM_DELETED"]        = "Community and all its data have been deleted.";
+                messages["MSG_TRANSFER_OK"]         = "Community ownership transferred successfully.";
+                messages["ERR_MASTER_LEAVE"]        = "The owner cannot leave the community without transferring ownership.";
+                messages["ERR_NOT_MASTER"]          = "Only the owner (Master Admin) can perform this action.";
+                messages["MSG_REQ_ACCEPTED"]        = "Join request accepted!";
+                messages["MSG_REQ_REJECTED"]        = "Join request rejected.";
+                messages["ERR_PROCESS_REQ"]         = "Error processing action on join request.";
+
                 // --- NEW KEYS ---
                 messages["MSG_PROFILE_UPDATED"] = "Profile Updated!";
                 messages["MSG_POST_CREATED"]    = "Post Published!";
-                
+                messages["MSG_USER_DELETED"] = "Your account and all its data have been permanently deleted.";
+                messages["ERR_DELETE_MASTER"] = "You cannot delete your account while owning a community. Transfer ownership or delete the community first.";
+
                 break;
         }
     }

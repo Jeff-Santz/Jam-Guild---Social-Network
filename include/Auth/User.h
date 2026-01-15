@@ -17,7 +17,8 @@ namespace Auth {
         std::string birthDate;
 
     public:
-        User(); 
+        User();
+        bool deleteAccount(int userId);
         
         // Getters
         std::string getUsername() const { return username; }
@@ -54,7 +55,7 @@ namespace Auth {
         std::vector<User> getFriends();
         std::vector<User> getPendingRequests();
         // Status: -1 (Nothing), 0 (Pendant), 1 (Friends)
-        int checkFriendshipStatus(User* other);
+        int checkFriendshipStatus(User* other); // Tem q implementar ou excluir isso
 
         // Profile update
         bool update();

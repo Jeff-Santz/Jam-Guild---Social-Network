@@ -11,6 +11,7 @@ namespace Content {
     private:
         int authorId;
         std::string content;
+        int communityId = -1;
 
     public:
         Post();
@@ -20,6 +21,9 @@ namespace Content {
 
         std::string getContent() const { return content; }
         void setContent(const std::string& text) { content = text; }
+
+        void setCommunityId(int id) { communityId = id; }
+        int getCommunityId() const { return communityId; }
 
         bool save() override;
         std::string getTableName() const override { return "posts"; }
