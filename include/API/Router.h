@@ -8,6 +8,7 @@ namespace API {
     class Router {
     public:
         static void setupRoutes(crow::SimpleApp& app);
+        static int authenticate(const crow::request& req);
     };
 
 }

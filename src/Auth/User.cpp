@@ -4,6 +4,8 @@
 #include "Core/Utils.h"
 #include "Content/Notification.h"
 #include <iostream>
+#include <algorithm>
+#include <cctype>
 
 namespace Auth {
     const std::string GLOBAL_SALT = "J3ff_Pr3gn@_P0ly_2026_#";
@@ -11,6 +13,31 @@ namespace Auth {
     User::User() {
         this->language = "pt_BR";
         this->bio = "";
+    }
+
+    bool User::login(const std::string& identifier, const std::string& plainPassword) {
+        User tempUser;
+        bool found = false;
+
+        // std::all_of percorre a string e checa se cada caractere é um dígito (::isdigit)
+        bool isNumericId = !identifier.empty() && std::all_of(identifier.begin(), identifier.end(), [](unsigned char c) {
+            return std::isdigit(c);
+        });
+
+        if (isNumericId) {
+            int id = std::stoi(identifier);
+            found = User::findById(id, tempUser);
+        } else {
+            found = User::findByEmail(identifier, tempUser);
+        }
+
+        // Se encontrou o usuário, ve a senha
+        if (found && tempUser.checkPassword(plainPassword)) {
+            *this = tempUser; // "Popula" o objeto atual com os dados do banco
+            return true;
+        }
+
+        return false;
     }
 
     bool User::deleteAccount(int userId) {
@@ -59,7 +86,7 @@ namespace Auth {
         auto* db = Core::Database::getInstance();
         
         if (this->id == -1) {
-            std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, isPrivate, creation_date) VALUES ('" +
+            std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, is_private, creation_date) VALUES ('" +
                 this->username + "', '" + 
                 this->email + "', '" + 
                 this->passwordHash + "', '" + 
@@ -93,7 +120,8 @@ namespace Auth {
     bool User::findByEmail(const std::string& email, User& outUser) {
         auto* db = Core::Database::getInstance();
         
-        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date FROM users WHERE email = '" + email + "';";
+        // 1. SELECT incluindo birth_date e is_private
+        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private FROM users WHERE email = '" + email + "';";
         
         bool found = false;
 
@@ -107,6 +135,8 @@ namespace Auth {
             outUser.setLanguage(argv[5] ? argv[5] : "pt_BR");
             outUser.setCreationDate(argv[6] ? argv[6] : "");
             outUser.setBirthDate(argv[7] ? argv[7] : "");
+            bool isPriv = (argv[8] && std::string(argv[8]) == "1");
+            outUser.setPrivate(isPriv);
             return 0;
         };
 
@@ -116,10 +146,7 @@ namespace Auth {
 
     bool User::findById(int id, User& outUser) {
         auto* db = Core::Database::getInstance();
-        
-        // Searching by ID
-        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date FROM users WHERE id = " + std::to_string(id) + ";";
-        
+        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private FROM users WHERE id = " + std::to_string(id) + ";";
         bool found = false;
 
         auto callback = [&](int argc, char** argv, char** colNames) -> int {
@@ -131,6 +158,9 @@ namespace Auth {
             outUser.setBio(argv[4] ? argv[4] : "");
             outUser.setLanguage(argv[5] ? argv[5] : "pt_BR");
             outUser.setCreationDate(argv[6] ? argv[6] : "");
+            outUser.setBirthDate(argv[7] ? argv[7] : "");
+            bool isPriv = (argv[8] && std::string(argv[8]) == "1");
+            outUser.setPrivate(isPriv);
             return 0;
         };
 
@@ -139,7 +169,6 @@ namespace Auth {
     }
 
     //Friendship management methods
-    // Não esqueça de incluir no topo: #include "Core/Utils.h"
 
     // 1. Enviar Solicitação (Cria com Status 0)
     bool User::sendFriendRequest(User* other) {

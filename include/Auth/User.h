@@ -19,6 +19,7 @@ namespace Auth {
 
     public:
         User();
+        bool login(const std::string& identifier, const std::string& plainPassword);
         bool deleteAccount(int userId);
         
         // Getters

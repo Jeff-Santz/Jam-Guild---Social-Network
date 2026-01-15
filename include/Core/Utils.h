@@ -11,6 +11,7 @@ namespace Core {
         static std::string formatForDisplay(std::string isoDate);
 
         static std::string getCurrentDateTime();
+        static void loadEnv(const std::string& filename);
     };
 
 }

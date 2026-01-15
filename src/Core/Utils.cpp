@@ -1,10 +1,12 @@
 #include "Core/Utils.h"
 #include "Core/Translation.h" 
+#include <iostream>
 #include <regex>
 #include <stdexcept>
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 
 namespace Core {
 
@@ -95,5 +97,30 @@ namespace Core {
         char buffer[80];
         std::strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
         return std::string(buffer);
+    }
+
+    void Utils::loadEnv(const std::string& filename) {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << ">> Warning: .env file not found!" << std::endl;
+            return;
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            // Ignorar comentários e linhas vazias
+            if (line.empty() || line[0] == '#') continue;
+
+            std::istringstream lineStream(line);
+            std::string key, value;
+            if (std::getline(lineStream, key, '=') && std::getline(lineStream, value)) {
+                // Define a variável de ambiente no processo atual
+                #ifdef _WIN32
+                    _putenv_s(key.c_str(), value.c_str());
+                #else
+                    setenv(key.c_str(), value.c_str(), 1);
+                #endif
+            }
+        }
     }
 }

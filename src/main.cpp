@@ -1,9 +1,13 @@
 #include "API/Router.h"
 #include "Core/Database.h"
 #include "Core/Translation.h"
+#include "Core/Utils.h"
 #include <iostream>
 
 int main() {
+
+    Core::Utils::loadEnv(".env");
+    
     // 1. Inicializa o Banco de Dados
     auto* db = Core::Database::getInstance();
 

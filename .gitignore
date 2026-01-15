@@ -4,6 +4,7 @@ bin/
 *.exe
 *.o
 *.obj
+*.env
 
 # Arquivos de IDE
 .vscode/

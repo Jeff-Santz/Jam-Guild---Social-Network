@@ -46,6 +46,7 @@ namespace Core {
                 messages["MSG_LOGIN_OK"]      = "Login Aprovado";
                 messages["ERR_WRONG_PASS"]    = "Senha Incorreta";
                 messages["ERR_USER_NOT_FOUND"]= "Usuario nao encontrado";
+                messages["ERR_AUTH_FAILED"]   = "Senha ou email incorretos";
                 
                 // --- DATAS & VALIDAÇÃO ---
                 messages["DATE_FORMAT"]         = "%d/%m/%Y"; 
@@ -94,6 +95,8 @@ namespace Core {
                 messages["MSG_REQ_ACCEPTED"]        = "Solicitacao de entrada aceita!";
                 messages["MSG_REQ_REJECTED"]        = "Solicitacao de entrada recusada.";
                 messages["ERR_PROCESS_REQ"]         = "Erro ao processar acao no pedido de entrada.";
+                messages["MSG_COMM_JOINED"]         = "Você entrou na comunidade!";
+                messages["MSG_MEMBER_REMOVED"]      = "Membro removido com sucesso.";
 
                 // --- NOVAS CHAVES ---
                 messages["MSG_PROFILE_UPDATED"] = "Perfil Atualizado!";
@@ -102,6 +105,7 @@ namespace Core {
                 messages["ERR_DELETE_MASTER"] = "Voce nao pode excluir sua conta sendo dono de uma comunidade. Transfira a posse ou exclua a comunidade primeiro.";
                 messages["ERR_PRIVATE_PROFILE"]   = "Esse usuario tem o perfil privado";
                 messages["ERR_PRIVATE_COMMUNITY"] = "Essa pagina tem seu perfil privado";
+                messages["MSG_TOKEN_ISSUED"] = "Autenticação gerada com sucesso";
 
                 break;
 
@@ -127,6 +131,7 @@ namespace Core {
                 messages["MSG_LOGIN_OK"]      = "Login Approved";
                 messages["ERR_WRONG_PASS"]    = "Incorrect Password";
                 messages["ERR_USER_NOT_FOUND"]= "User not found";
+                messages["ERR_AUTH_FAILED"]   = "Incorrect email or password";
 
                 // --- DATES & VALIDATION ---
                 messages["DATE_FORMAT"]      = "%m/%d/%Y"; 
@@ -175,6 +180,8 @@ namespace Core {
                 messages["MSG_REQ_ACCEPTED"]        = "Join request accepted!";
                 messages["MSG_REQ_REJECTED"]        = "Join request rejected.";
                 messages["ERR_PROCESS_REQ"]         = "Error processing action on join request.";
+                messages["MSG_COMM_JOINED"]         = "You have joined the community!";
+                messages["MSG_MEMBER_REMOVED"]      = "Member removed successfully.";
 
                 // --- NEW KEYS ---
                 messages["MSG_PROFILE_UPDATED"] = "Profile Updated!";
