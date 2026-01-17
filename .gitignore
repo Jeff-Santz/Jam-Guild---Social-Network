@@ -1,6 +1,7 @@
 # Compilação e Build
 build/
 bin/
+uploads/
 *.exe
 *.o
 *.obj
