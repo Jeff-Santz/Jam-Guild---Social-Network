@@ -9,6 +9,8 @@ namespace Content {
     Post::Post() {
         this->authorId = -1;
         this->content = "";
+        this->mediaUrl = "";
+        this->mediaType = "";
     }
 
 bool Post::save() {
@@ -18,9 +20,15 @@ bool Post::save() {
         // Se communityId for -1, inserimos NULL no banco
         std::string commSql = (this->communityId == -1) ? "NULL" : std::to_string(this->communityId);
 
-        std::string sql = "INSERT INTO posts (author_id, community_id, content, tags, creation_date) VALUES (" +
-                  std::to_string(this->authorId) + ", " + commSql + ", '" + 
-                  this->content + "', '" + this->tags + "', '" + this->creationDate + "');";
+        // Query atualizada com MEDIA_URL e MEDIA_TYPE
+        std::string sql = "INSERT INTO posts (author_id, community_id, content, tags, media_url, media_type, creation_date) VALUES (" +
+            std::to_string(this->authorId) + ", " + 
+            (this->communityId == -1 ? "NULL" : std::to_string(this->communityId)) + ", '" + 
+            this->content + "', '" + 
+            this->tags + "', '" + 
+            this->mediaUrl + "', '" +   
+            this->mediaType + "', '" +  
+            this->creationDate + "');";
 
         if (db->execute(sql)) {
             this->id = db->getLastInsertId();

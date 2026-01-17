@@ -47,7 +47,15 @@ namespace Core {
                 messages["ERR_WRONG_PASS"]    = "Senha Incorreta";
                 messages["ERR_USER_NOT_FOUND"]= "Usuario nao encontrado";
                 messages["ERR_AUTH_FAILED"]   = "Senha ou email incorretos";
-                
+                messages["ERR_RMV_VERIFIED_EMAIL"]   = "Usuários verificados não podem remover seu email";
+                messages["ERR_INVALID_EMAIL"]   = "Erro: Email inválido!";
+                messages["MSG_TOKEN_ISSUED"] = "Autenticação gerada com sucesso";
+
+                // --- NOVAS CHAVES DE MÍDIA E ARQUIVOS (FALTAVA ISSO) ---
+                messages["ERR_FILE_TOO_LARGE"]   = "Arquivo muito grande. Limite maximo: 50MB.";
+                messages["MSG_MEDIA_UPLOADED"]   = "Midia enviada com sucesso.";
+                messages["ERR_INVALID_LOCATION"] = "Localizacao invalida. Consulte /api/locations para ver as cidades suportadas.";
+
                 // --- DATAS & VALIDAÇÃO ---
                 messages["DATE_FORMAT"]         = "%d/%m/%Y"; 
                 messages["ERR_DATE_FORMAT"]     = "Formato invalido. Use AAAA-MM-DD ou DD/MM/AAAA.";
@@ -68,6 +76,7 @@ namespace Core {
                 messages["ERR_COMMENT_EMPTY"] = "O comentario nao pode estar vazio.";
                 messages["MSG_LIKE_ADDED"]    = "Post curtido!";
                 messages["MSG_LIKE_REMOVED"]  = "Curtida removida do post!";
+                messages["MSG_POST_CREATED"]  = "Post Publicado!";
 
                 // --- NOTIFICAÇÕES & LOGS ---
                 messages["NOTIF_LIKE"]        = "curtiu seu post.";
@@ -96,18 +105,70 @@ namespace Core {
                 messages["MSG_REQ_REJECTED"]        = "Solicitacao de entrada recusada.";
                 messages["ERR_PROCESS_REQ"]         = "Erro ao processar acao no pedido de entrada.";
                 messages["MSG_COMM_JOINED"]         = "Você entrou na comunidade!";
-                messages["MSG_MEMBER_REMOVED"]      = "Membro removido com sucesso.";
                 messages["ERR_NOT_VERIFIED"]        = "Voce precisa verificar seu email para criar comunidades.";
                 messages["MSG_EMAIL_VERIFIED"]      = "Seu email foi verificado com sucesso";
+                messages["ERR_PRIVATE_COMMUNITY"] = "Essa pagina tem seu perfil privado";
 
-                // --- NOVAS CHAVES ---
+                // --- REPORTE & GOVERNANÇA ---
+                messages["MSG_REPORT_CREATED"]   = "Denuncia enviada com sucesso. Nossa equipe vai analisar.";
+                messages["ERR_REPORT_MISSING"]   = "Faltam dados para a denuncia (target_id, type ou reason).";
+                messages["MSG_REPORT_RESOLVED"]  = "Denuncia marcada como resolvida.";
+                messages["ERR_ADMIN_ONLY"]       = "Apenas administradores do sistema podem ver isso.";
+
+                // --- PERFIL ---
                 messages["MSG_PROFILE_UPDATED"] = "Perfil Atualizado!";
-                messages["MSG_POST_CREATED"]    = "Post Publicado!";
                 messages["MSG_USER_DELETED"] = "Sua conta e todos os seus dados foram excluidos permanentemente.";
                 messages["ERR_DELETE_MASTER"] = "Voce nao pode excluir sua conta sendo dono de uma comunidade. Transfira a posse ou exclua a comunidade primeiro.";
                 messages["ERR_PRIVATE_PROFILE"]   = "Esse usuario tem o perfil privado";
-                messages["ERR_PRIVATE_COMMUNITY"] = "Essa pagina tem seu perfil privado";
-                messages["MSG_TOKEN_ISSUED"] = "Autenticação gerada com sucesso";
+
+                // --- PRIVACIDADE & PERFIL ---
+                messages["LBL_PRIVATE_BIO"]     = "🔒 Este perfil é privado.";
+                messages["LBL_RESTRICTED"]      = "Restrito";
+                messages["LBL_UNKNOWN_LOC"]     = "Localização Desconhecida";
+                messages["LBL_GLOBAL_LOC"]      = "Global";
+                messages["BTN_ADD_FRIEND"]      = "Adicionar";
+                messages["BTN_PENDING"]         = "Pendente";
+                messages["BTN_FRIENDS"]         = "Amigos";
+
+                // --- INTERFACE GRÁFICA (UI) ---
+                // Auth
+                messages["UI_TITLE_LOGIN"]      = "Acesso ao Terminal";
+                messages["UI_BTN_LOGIN"]        = "Acessar Sistema";
+                messages["UI_BTN_SIGNUP"]       = "Criar Identidade";
+                messages["UI_LBL_ID"]           = "Identificador (ID/Email)";
+                messages["UI_LBL_PASS"]         = "Senha de Acesso";
+                messages["UI_LBL_CITY"]         = "Cidade";
+                messages["UI_LBL_STATE"]        = "Estado";
+                
+                // Navegação
+                messages["UI_NAV_FEED"]         = "Feed Principal";
+                messages["UI_NAV_COMMUNITIES"]  = "Comunidades";
+                messages["UI_NAV_FRIENDS"]      = "Rede de Contatos";
+                messages["UI_NAV_NOTIFICATIONS"]= "Notificações";
+                messages["UI_NAV_SETTINGS"]     = "Configurações";
+                messages["UI_NAV_LOGOUT"]       = "Desconectar";
+
+                // Feed
+                messages["UI_BTN_POST"]         = "Transmitir";
+                messages["UI_PLACEHOLDER_POST"] = "Atualize o status da rede...";
+                messages["UI_BTN_MEDIA"]        = "Anexar Mídia";
+                messages["UI_BTN_COMMENTS"]     = "Comentários";
+                messages["UI_LBL_LIKES"]        = "Curtidas";
+
+                // Perfil
+                messages["UI_LBL_BIO"]          = "Biografia";
+                messages["UI_LBL_JOINED"]       = "Membro desde";
+                messages["UI_BTN_ADD"]          = "Conectar";
+                messages["UI_BTN_ACCEPT"]       = "Aceitar";
+                messages["UI_BTN_REJECT"]       = "Recusar";
+                messages["UI_LBL_PRIVATE"]      = "Perfil Privado";
+                messages["UI_LBL_LOCKED"]       = "Acesso Restrito";
+                
+                // Comunidades
+                messages["UI_TITLE_COMM"]       = "Diretório de Comunidades";
+                messages["UI_BTN_CREATE_COMM"]  = "Fundar Comunidade";
+                messages["UI_BTN_JOIN"]         = "Juntar-se";
+                messages["UI_BTN_LEAVE"]        = "Abandonar";
 
                 break;
 
@@ -134,6 +195,14 @@ namespace Core {
                 messages["ERR_WRONG_PASS"]    = "Incorrect Password";
                 messages["ERR_USER_NOT_FOUND"]= "User not found";
                 messages["ERR_AUTH_FAILED"]   = "Incorrect email or password";
+                messages["ERR_RMV_VERIFIED_EMAIL"]   = "Verified users cannot remove their email.";
+                messages["ERR_INVALID_EMAIL"]   = "Error: Invalid email";
+                messages["MSG_TOKEN_ISSUED"] = "Auth token issued successfully";
+
+                // --- MEDIA & FILES (NEW KEYS) ---
+                messages["ERR_FILE_TOO_LARGE"]   = "File too large. Max limit: 50MB.";
+                messages["MSG_MEDIA_UPLOADED"]   = "Media uploaded successfully.";
+                messages["ERR_INVALID_LOCATION"] = "Invalid location. Check /api/locations for supported cities.";
 
                 // --- DATES & VALIDATION ---
                 messages["DATE_FORMAT"]      = "%m/%d/%Y"; 
@@ -155,6 +224,7 @@ namespace Core {
                 messages["ERR_COMMENT_EMPTY"] = "Comment cannot be empty.";
                 messages["MSG_LIKE_ADDED"]    = "Post liked!";
                 messages["MSG_LIKE_REMOVED"]  = "Like removed from post!";
+                messages["MSG_POST_CREATED"]  = "Post Published!";
                 
                 // --- NOTIFICATIONS & LOGS ---
                 messages["NOTIF_LIKE"]        = "liked your post.";
@@ -183,17 +253,71 @@ namespace Core {
                 messages["MSG_REQ_REJECTED"]        = "Join request rejected.";
                 messages["ERR_PROCESS_REQ"]         = "Error processing action on join request.";
                 messages["MSG_COMM_JOINED"]         = "You have joined the community!";
-                messages["MSG_MEMBER_REMOVED"]      = "Member removed successfully.";
                 messages["ERR_NOT_VERIFIED"]        = "You need to verify your email to create communities";
                 messages["MSG_EMAIL_VERIFIED"]      = "Your email have been sucessfully verified";
+                messages["ERR_PRIVATE_COMMUNITY"] = "This page has its profile set to private";
+                
+                // --- REPORT & GOVERNANCE ---
+                messages["MSG_REPORT_CREATED"]   = "Report submitted successfully. Our team will review it.";
+                messages["ERR_REPORT_MISSING"]   = "Missing report data (target_id, type or reason).";
+                messages["MSG_REPORT_RESOLVED"]  = "Report marked as resolved.";
+                messages["ERR_ADMIN_ONLY"]       = "Only system administrators can access this.";
 
-                // --- NEW KEYS ---
+                // --- PROFILE ---
                 messages["MSG_PROFILE_UPDATED"] = "Profile Updated!";
-                messages["MSG_POST_CREATED"]    = "Post Published!";
                 messages["MSG_USER_DELETED"] = "Your account and all its data have been permanently deleted.";
                 messages["ERR_DELETE_MASTER"] = "You cannot delete your account while owning a community. Transfer ownership or delete the community first.";
                 messages["ERR_PRIVATE_PROFILE"]   = "This user has a private profile";
-                messages["ERR_PRIVATE_COMMUNITY"] = "This page has its profile set to private";
+
+                // --- PRIVACY & PROFILE ---
+                messages["LBL_PRIVATE_BIO"]     = "🔒 This profile is private.";
+                messages["LBL_RESTRICTED"]      = "Restricted";
+                messages["LBL_UNKNOWN_LOC"]     = "Unknown Location";
+                messages["LBL_GLOBAL_LOC"]      = "Global";
+                messages["BTN_ADD_FRIEND"]      = "Add Friend";
+                messages["BTN_PENDING"]         = "Pending";
+                messages["BTN_FRIENDS"]         = "Friends";
+
+                // --- GRAPHICAL INTERFACE (UI) ---
+                // Auth
+                messages["UI_TITLE_LOGIN"]      = "Terminal Access";
+                messages["UI_BTN_LOGIN"]        = "Access System";
+                messages["UI_BTN_SIGNUP"]       = "Create Identity";
+                messages["UI_LBL_ID"]           = "Identifier (ID/Email)";
+                messages["UI_LBL_PASS"]         = "Access Password";
+                messages["UI_LBL_CITY"]         = "City";
+                messages["UI_LBL_STATE"]        = "State";
+
+                // Navigation
+                messages["UI_NAV_FEED"]         = "Main Feed";
+                messages["UI_NAV_COMMUNITIES"]  = "Communities";
+                messages["UI_NAV_FRIENDS"]      = "Contact Network";
+                messages["UI_NAV_NOTIFICATIONS"]= "Notifications";
+                messages["UI_NAV_SETTINGS"]     = "Settings";
+                messages["UI_NAV_LOGOUT"]       = "Disconnect";
+
+                // Feed
+                messages["UI_BTN_POST"]         = "Broadcast";
+                messages["UI_PLACEHOLDER_POST"] = "Update your network status...";
+                messages["UI_BTN_MEDIA"]        = "Attach Media";
+                messages["UI_BTN_COMMENTS"]     = "Comments";
+                messages["UI_LBL_LIKES"]        = "Likes";
+
+                // Profile
+                messages["UI_LBL_BIO"]          = "Biography";
+                messages["UI_LBL_JOINED"]       = "Member since";
+                messages["UI_BTN_ADD"]          = "Connect";
+                messages["UI_BTN_ACCEPT"]       = "Accept";
+                messages["UI_BTN_REJECT"]       = "Reject";
+                messages["UI_LBL_PRIVATE"]      = "Private Profile";
+                messages["UI_LBL_LOCKED"]       = "Restricted Access";
+
+                // Communities
+                messages["UI_TITLE_COMM"]       = "Community Directory";
+                messages["UI_BTN_CREATE_COMM"]  = "Found Community";
+                messages["UI_BTN_JOIN"]         = "Join";
+                messages["UI_BTN_LEAVE"]        = "Leave";
+
 
                 break;
         }

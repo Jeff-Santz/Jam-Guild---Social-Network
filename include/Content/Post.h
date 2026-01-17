@@ -14,6 +14,10 @@ namespace Content {
         int communityId = -1;
         std::string tags;
 
+        // MEDIA
+        std::string mediaUrl;  // Caminho do arquivo (ex: uploads/post_10.jpg)
+        std::string mediaType; 
+
     public:
         Post();
         bool save() override;
@@ -23,6 +27,8 @@ namespace Content {
         void setContent(const std::string& text) { content = text; }
         void setCommunityId(int id) { communityId = id; }
         void setTags(const std::string& t) { tags = t; }
+        void setMediaUrl(const std::string& u) { mediaUrl = u; }
+        void setMediaType(const std::string& t) { mediaType = t; }
 
         // Getters
         static std::vector<Post> getPostsByUserId(int userId);
@@ -31,6 +37,8 @@ namespace Content {
         std::string getTags() const { return tags; }
         std::string getContent() const { return content; }
         std::string getTableName() const override { return "posts"; }
+        std::string getMediaUrl() const { return mediaUrl; }
+        std::string getMediaType() const { return mediaType; }
 
     };
 

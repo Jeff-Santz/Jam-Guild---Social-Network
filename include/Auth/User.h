@@ -15,6 +15,10 @@ namespace Auth {
         std::string bio;
         std::string language;
         std::string birthDate;
+        std::string city;   
+        std::string state;  
+        std::string avatarUrl;
+        std::string coverUrl;
         bool isPrivate = false;
         bool isVerified = false;
 
@@ -52,6 +56,10 @@ namespace Auth {
         void setBirthDate(const std::string& date) { birthDate = date; }
         void setPrivate(bool status) { isPrivate = status; }
         void setVerified(bool v) { isVerified = v; }
+        void setCity(const std::string& c) { city = c; }
+        void setState(const std::string& s) { state = s; }
+        void setAvatarUrl(const std::string& url) { avatarUrl = url; }
+        void setCoverUrl(const std::string& url) { coverUrl = url; }
 
         // Getters
         std::string getUsername() const { return username; }
@@ -59,6 +67,10 @@ namespace Auth {
         std::string getBio() const { return bio; }
         std::string getLanguage() const { return language; }
         std::string getBirthDate() const { return birthDate; }
+        std::string getCity() const { return city; }
+        std::string getState() const { return state; }
+        std::string getAvatarUrl() const { return avatarUrl; }
+        std::string getCoverUrl() const {return coverUrl; }
         bool getPrivate() const { return isPrivate; }
         bool getVerified() const { return isVerified; }
         std::string getTableName() const override { return "users"; }

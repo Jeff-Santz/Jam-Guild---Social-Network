@@ -12,6 +12,7 @@ namespace Core {
 
         static std::string getCurrentDateTime();
         static void loadEnv(const std::string& filename);
+        static std::string saveBase64Image(const std::string& base64Data, int postId);
     };
 
 }

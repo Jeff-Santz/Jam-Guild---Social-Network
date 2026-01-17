@@ -12,18 +12,20 @@ namespace Social {
 
     bool Community::save() {
         auto* db = Core::Database::getInstance();
-        if (this->id == -1) {
-            std::string sql = "INSERT INTO communities (name, description, owner_id, is_private, creation_date) VALUES ('" +
-                this->name + "', '" + 
-                this->description + "', " + 
-                std::to_string(this->ownerId) + ", " + 
-                std::to_string(this->isPrivate ? 1 : 0) + ", '" + 
-                this->creationDate + "');";
+        std::string date = Core::Utils::getCurrentDateTime();
 
-            if (db->execute(sql)) {
-                this->id = db->getLastInsertId();
-                return addMember(this->id, this->ownerId, CommunityRole::MASTER_ADMIN);
-            }
+        std::string sql = "INSERT INTO communities (owner_id, name, description, city, state, is_private, creation_date) VALUES (" +
+            std::to_string(this->ownerId) + ", '" + 
+            this->name + "', '" + 
+            this->description + "', '" + 
+            this->city + "', '" +   
+            this->state + "', " +    
+            (this->isPrivate ? "1" : "0") + ", '" + 
+            date + "');";
+
+        if (db->execute(sql)) {
+            this->id = db->getLastInsertId();
+            return true;
         }
         return false;
     }

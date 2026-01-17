@@ -1,0 +1,2479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CM Industries - Rede Social</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 900: '#0d1117', 800: '#161b22', 700: '#21262d', 600: '#30363d' },
+                        neon: { green: '#238636', lime: '#3fb950', cyan: '#58a6ff' }
+                    },
+                    fontFamily: { mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0d1117; }
+        ::-webkit-scrollbar-thumb { background: #238636; border-radius: 4px; }
+        .glow { box-shadow: 0 0 15px rgba(35, 134, 54, 0.3); }
+        .glow-text { text-shadow: 0 0 10px rgba(35, 134, 54, 0.5); }
+        .terminal-cursor::after { content: '█'; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        .toast-enter { animation: slideIn 0.3s ease-out forwards; }
+        .toast-exit { animation: slideOut 0.3s ease-in forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        /* Like animation */
+        @keyframes likeAnim { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+        .like-anim { animation: likeAnim 0.3s ease-out; }
+        /* Avatar frame */
+        .avatar-frame { border: 3px solid #58a6ff; }
+        /* Friend highlight */
+        .friend-highlight { border-color: #3fb950 !important; }
+        /* Clickable profile */
+        .clickable-profile { cursor: pointer; transition: opacity 0.2s; }
+        .clickable-profile:hover { opacity: 0.8; }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-300 min-h-screen">
+    
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-neon-green glow-text terminal-cursor">CM_INDUSTRIES</h1>
+                <p class="text-gray-500 mt-2" data-i18n="UI_SUBTITLE">&gt; Sistema de Rede Social v2.0</p>
+            </div>
+            
+            <div class="bg-dark-800 border border-dark-600 rounded-lg p-6 glow">
+                <div class="flex mb-6 border-b border-dark-600">
+                    <button id="login-tab" onclick="switchAuthTab('login')" class="flex-1 py-3 text-neon-green border-b-2 border-neon-green" data-i18n="UI_TAB_LOGIN">LOGIN</button>
+                    <button id="signup-tab" onclick="switchAuthTab('signup')" class="flex-1 py-3 text-gray-500 border-b-2 border-transparent hover:text-gray-300" data-i18n="UI_TAB_SIGNUP">CADASTRO</button>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_IDENTIFIER">&gt; IDENTIFICADOR</label>
+                        <input type="text" id="login-identifier" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_IDENTIFIER">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_PASSWORD">&gt; SENHA</label>
+                        <input type="password" id="login-password" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full bg-neon-green text-dark-900 font-bold py-3 rounded hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_LOGIN">&gt; ACESSAR_SISTEMA</button>
+                </form>
+                
+                <!-- Signup Form -->
+                <form id="signup-form" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_USERNAME">&gt; USERNAME</label>
+                        <input type="text" id="signup-username" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_USERNAME">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_EMAIL">&gt; EMAIL</label>
+                        <input type="email" id="signup-email" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_EMAIL">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_PASSWORD">&gt; SENHA</label>
+                        <input type="password" id="signup-password" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none" placeholder="••••••••">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_STATE">&gt; ESTADO</label>
+                            <select id="signup-state" onchange="loadCities()" class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                                <option value="" data-i18n="UI_SELECT_DEFAULT">Selecione...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_CITY">&gt; CIDADE</label>
+                            <select id="signup-city" class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                                <option value="" data-i18n="UI_SELECT_DEFAULT">Selecione...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-neon-green text-dark-900 font-bold py-3 rounded hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_SIGNUP">&gt; CRIAR_CONTA</button>
+                </form>
+                
+                <div id="auth-message" class="mt-4 text-center text-sm hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de ID apos cadastro -->
+    <div id="signup-success-modal" class="modal hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="bg-dark-800 border border-neon-green rounded-lg p-8 w-full max-w-md glow text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h3 class="text-2xl font-bold text-neon-green mb-4" data-i18n="UI_SIGNUP_SUCCESS">&gt; CONTA_CRIADA!</h3>
+            <p class="text-gray-300 mb-4" data-i18n="UI_SIGNUP_ID_MSG">Seu ID de acesso e:</p>
+            <div class="bg-dark-900 border border-neon-cyan rounded-lg p-4 mb-6">
+                <span id="signup-user-id" class="text-4xl font-bold text-neon-cyan"></span>
+            </div>
+            <p class="text-yellow-400 text-sm mb-6" data-i18n="UI_SIGNUP_SAVE_ID">⚠️ ANOTE ESTE NUMERO! Voce pode usar ele ou seu email para fazer login.</p>
+            <button onclick="closeSignupModal()" class="w-full bg-neon-green text-dark-900 font-bold py-3 rounded hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_OK_NOTED">&gt; OK, ANOTEI!</button>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div id="main-app" class="hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-dark-800 border-r border-dark-600 z-40 transform -translate-x-full lg:translate-x-0 transition-transform">
+            <div class="p-4 border-b border-dark-600">
+                <h1 class="text-xl font-bold text-neon-green glow-text">CM_INDUSTRIES</h1>
+                <p class="text-xs text-gray-500">v2.0 :: <span id="user-display"></span></p>
+            </div>
+            
+            <nav class="p-4 space-y-2">
+                <button onclick="navigate('feed')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-neon-green hover:bg-dark-700 transition-colors flex items-center gap-3" data-page="feed">
+                    <span class="text-neon-green">&gt;</span> <span data-i18n="UI_NAV_FEED">Feed</span>
+                </button>
+                <button onclick="navigate('communities')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-neon-green hover:bg-dark-700 transition-colors flex items-center gap-3" data-page="communities">
+                    <span class="text-neon-green">&gt;</span> <span data-i18n="UI_NAV_COMMUNITIES">Comunidades</span>
+                </button>
+                <button onclick="navigate('friends')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-neon-green hover:bg-dark-700 transition-colors flex items-center gap-3" data-page="friends">
+                    <span class="text-neon-green">&gt;</span> <span data-i18n="UI_NAV_FRIENDS">Amigos</span>
+                </button>
+                <button onclick="navigate('notifications')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-neon-green hover:bg-dark-700 transition-colors flex items-center gap-3" data-page="notifications">
+                    <span class="text-neon-green">&gt;</span> <span data-i18n="UI_NAV_NOTIFICATIONS">Notificacoes</span>
+                    <span id="notif-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"></span>
+                </button>
+                <button onclick="navigate('settings')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-neon-green hover:bg-dark-700 transition-colors flex items-center gap-3" data-page="settings">
+                    <span class="text-neon-green">&gt;</span> <span data-i18n="UI_NAV_SETTINGS">Configuracoes</span>
+                </button>
+                <!-- Admin button - only visible for admin (myUserId === 1) -->
+                <button id="admin-btn" onclick="navigate('admin')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-yellow-500 hover:bg-dark-700 transition-colors flex items-center gap-3 hidden" data-page="admin">
+                    <span class="text-yellow-400">🛡️</span> <span class="text-yellow-400">ADMIN</span>
+                </button>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-dark-600">
+                <button onclick="logout()" class="w-full text-left px-4 py-2 text-red-400 hover:text-red-300 hover:bg-dark-700 rounded transition-colors" data-i18n="UI_NAV_LOGOUT">
+                    &gt; LOGOUT
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Mobile Menu Toggle -->
+        <button id="mobile-menu-btn" onclick="toggleSidebar()" class="lg:hidden fixed top-4 left-4 z-50 bg-dark-800 border border-dark-600 p-2 rounded">
+            <svg class="w-6 h-6 text-neon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+        
+        <!-- Main Content -->
+        <main class="lg:ml-64 min-h-screen">
+            <!-- Feed Page -->
+            <div id="page-feed" class="page p-6">
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold text-neon-green mb-6 glow-text" data-i18n="UI_TITLE_FEED">&gt; FEED_PRINCIPAL</h2>
+                    
+                    <!-- Create Post -->
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-4 mb-6 glow">
+                        <textarea id="post-content" class="w-full bg-dark-900 border border-dark-600 rounded p-3 resize-none h-24 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_POST"></textarea>
+                        <div class="flex items-center justify-between mt-3">
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="post-media" accept="image/*,video/*" class="hidden" onchange="previewMedia(event)">
+                                <button onclick="document.getElementById('post-media').click()" class="px-3 py-1 border border-dark-600 rounded text-sm hover:border-neon-green transition-colors" data-i18n="UI_BTN_ADD_MEDIA">+ Midia</button>
+                                <span id="media-preview-name" class="text-xs text-gray-500"></span>
+                            </div>
+                            <button onclick="createPost()" class="bg-neon-green text-dark-900 px-4 py-2 rounded font-bold hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_PUBLISH">&gt; PUBLICAR</button>
+                        </div>
+                    </div>
+                    
+                    <div id="feed-posts" class="space-y-4"></div>
+                </div>
+            </div>
+            
+            <!-- Communities Page -->
+            <div id="page-communities" class="page hidden p-6">
+                <div class="max-w-4xl mx-auto">
+                    <div id="community-header" class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <button id="back-to-communities" onclick="backToCommunities()" class="hidden text-neon-cyan hover:text-neon-green transition-colors" data-i18n="UI_BTN_BACK">&lt; Voltar</button>
+                            <h2 id="communities-title" class="text-2xl font-bold text-neon-green glow-text" data-i18n="UI_TITLE_COMMUNITIES">&gt; COMUNIDADES</h2>
+                        </div>
+                        <button id="create-community-btn" onclick="openModal('create-community-modal')" class="bg-neon-green text-dark-900 px-4 py-2 rounded font-bold hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_CREATE_COMMUNITY">&gt; CRIAR_COMUNIDADE</button>
+                    </div>
+                    
+                    <div id="communities-list" class="grid gap-4 md:grid-cols-2"></div>
+                    
+                    <!-- Community Dashboard View -->
+                    <div id="community-dashboard" class="hidden">
+                        <!-- Cover & Header -->
+                        <!-- Community cover now uses dynamic cover_url -->
+                        <div id="community-cover" class="relative h-48 rounded-t-lg bg-cover bg-center" style="background-image: url('https://picsum.photos/seed/cyber/800/200');">
+                            <div class="absolute inset-0 bg-gradient-to-t from-dark-900 to-transparent"></div>
+                        </div>
+                        <div class="bg-dark-800 border border-dark-600 border-t-0 rounded-b-lg p-6 mb-6">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div>
+                                    <h2 id="community-dash-name" class="text-2xl font-bold text-neon-green glow-text"></h2>
+                                    <p id="community-dash-desc" class="text-gray-400 mt-1"></p>
+                                    <p id="community-dash-location" class="text-gray-600 text-sm mt-1"></p>
+                                    <p id="community-dash-members" class="text-neon-cyan text-sm mt-2"></p>
+                                </div>
+                                <div id="community-action-btn" class="flex-shrink-0"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Community Tabs -->
+                        <div class="flex border-b border-dark-600 mb-6">
+                            <button id="comm-tab-feed" onclick="switchCommunityTab('feed')" class="flex-1 py-3 text-neon-cyan border-b-2 border-neon-cyan text-center" data-i18n="UI_TAB_FEED">[FEED]</button>
+                            <button id="comm-tab-members" onclick="switchCommunityTab('members')" class="flex-1 py-3 text-gray-500 border-b-2 border-transparent hover:text-gray-300 text-center" data-i18n="UI_TAB_MEMBERS">[MEMBROS]</button>
+                            <button id="comm-tab-admin" onclick="switchCommunityTab('admin')" class="flex-1 py-3 text-gray-500 border-b-2 border-transparent hover:text-gray-300 text-center hidden" data-i18n="UI_TAB_ADMIN">[ADMIN]</button>
+                        </div>
+                        
+                        <!-- Feed Tab -->
+                        <div id="community-tab-feed">
+                            <div id="community-create-post" class="bg-dark-800 border border-dark-600 rounded-lg p-4 mb-6 glow hidden">
+                                <textarea id="community-post-content" class="w-full bg-dark-900 border border-dark-600 rounded p-3 resize-none h-20 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_POST_COMMUNITY"></textarea>
+                                <div class="flex items-center justify-between mt-3">
+                                    <div class="flex items-center gap-2">
+                                        <input type="file" id="community-post-media" accept="image/*,video/*" class="hidden" onchange="previewCommunityMedia(event)">
+                                        <button onclick="document.getElementById('community-post-media').click()" class="px-3 py-1 border border-dark-600 rounded text-sm hover:border-neon-green transition-colors" data-i18n="UI_BTN_ADD_MEDIA">+ Midia</button>
+                                        <span id="community-media-preview-name" class="text-xs text-gray-500"></span>
+                                    </div>
+                                    <button onclick="createCommunityPost()" class="bg-neon-green text-dark-900 px-4 py-2 rounded font-bold hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_PUBLISH">&gt; PUBLICAR</button>
+                                </div>
+                            </div>
+                            <div id="community-posts" class="space-y-4"></div>
+                        </div>
+                        
+                        <!-- Members Tab -->
+                        <div id="community-tab-members" class="hidden">
+                            <div id="community-members-list" class="space-y-2"></div>
+                        </div>
+                        
+                        <!-- Admin Tab -->
+                        <div id="community-tab-admin" class="hidden">
+                            <div class="bg-dark-800 border border-dark-600 rounded-lg p-4 mb-4">
+                                <h3 class="text-lg font-bold text-neon-green mb-4" data-i18n="UI_TITLE_PENDING_REQUESTS">&gt; Solicitacoes Pendentes</h3>
+                                <div id="community-pending-requests" class="space-y-2"></div>
+                            </div>
+                            <div class="bg-dark-800 border border-red-600/30 rounded-lg p-4">
+                                <h3 class="text-lg font-bold text-red-400 mb-4" data-i18n="UI_TITLE_DANGER_ZONE">&gt; Zona Perigosa</h3>
+                                <button onclick="leaveCommunity()" class="bg-red-600/20 border border-red-600 text-red-400 px-4 py-2 rounded font-bold hover:bg-red-600 hover:text-white transition-colors" data-i18n="UI_BTN_LEAVE_COMMUNITY">&gt; SAIR_DA_COMUNIDADE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Friends Page -->
+            <div id="page-friends" class="page hidden p-6">
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold text-neon-green mb-6 glow-text" data-i18n="UI_TITLE_SEARCH">&gt; BUSCAR_USUARIOS</h2>
+                    
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-4 mb-6">
+                        <div class="flex gap-2">
+                            <input type="text" id="search-users" class="flex-1 bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_SEARCH" onkeyup="debounceSearch(event)">
+                            <button onclick="searchUsers()" class="bg-neon-green text-dark-900 px-4 py-2 rounded font-bold hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_SEARCH">&gt; BUSCAR</button>
+                        </div>
+                    </div>
+                    
+                    <div id="search-results" class="space-y-2 mb-8"></div>
+                    
+                    <div class="flex border-b border-dark-600 mb-4">
+                        <button id="friends-tab-pending" onclick="switchFriendsTab('pending')" class="flex-1 py-3 text-neon-cyan border-b-2 border-neon-cyan" data-i18n="UI_TAB_PENDING">&gt; SOLICITACOES_PENDENTES</button>
+                        <button id="friends-tab-list" onclick="switchFriendsTab('list')" class="flex-1 py-3 text-gray-500 border-b-2 border-transparent hover:text-gray-300" data-i18n="UI_TAB_FRIENDS">&gt; MEUS_AMIGOS</button>
+                    </div>
+                    <div id="pending-requests" class="space-y-2"></div>
+                    <div id="friends-list" class="space-y-2 hidden"></div>
+                </div>
+            </div>
+            
+            <!-- Profile Page (Dynamic) -->
+            <div id="page-profile" class="page hidden p-6">
+                <div class="max-w-2xl mx-auto">
+                    <div id="profile-content"></div>
+                    <div id="profile-timeline" class="mt-6 space-y-4"></div>
+                </div>
+            </div>
+            
+            <!-- Single Post Page for notification deep linking -->
+            <div id="page-single-post" class="page hidden p-6">
+                <div class="max-w-2xl mx-auto">
+                    <button onclick="navigate('feed')" class="text-neon-cyan hover:text-neon-green transition-colors mb-4">&lt; Voltar ao Feed</button>
+                    <div id="single-post-content"></div>
+                </div>
+            </div>
+            
+            <!-- Notifications Page -->
+            <div id="page-notifications" class="page hidden p-6">
+                <div class="max-w-2xl mx-auto">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-neon-green glow-text" data-i18n="UI_TITLE_NOTIFICATIONS">&gt; NOTIFICACOES</h2>
+                        <button onclick="markNotificationsRead()" class="text-sm text-neon-cyan hover:underline" data-i18n="UI_BTN_MARK_READ">Marcar todas como lidas</button>
+                    </div>
+                    
+                    <div class="flex border-b border-dark-600 mb-4">
+                        <button id="notif-tab-alerts" onclick="switchNotifTab('alerts')" class="flex-1 py-3 text-neon-cyan border-b-2 border-neon-cyan" data-i18n="UI_TAB_ALERTS">&gt; ALERTAS</button>
+                        <button id="notif-tab-requests" onclick="switchNotifTab('requests')" class="flex-1 py-3 text-gray-500 border-b-2 border-transparent hover:text-gray-300" data-i18n="UI_TAB_REQUESTS">&gt; SOLICITACOES</button>
+                    </div>
+                    
+                    <div id="notifications-alerts" class="space-y-2"></div>
+                    <div id="notifications-requests" class="space-y-2 hidden"></div>
+                </div>
+            </div>
+            
+            <!-- Settings Page -->
+            <div id="page-settings" class="page hidden p-6">
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold text-neon-green mb-6 glow-text" data-i18n="UI_TITLE_SETTINGS">&gt; CONFIGURACOES</h2>
+                    
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-6 space-y-6">
+                        <!-- Avatar upload section -->
+                        <div>
+                            <label class="block text-sm text-neon-green mb-2">&gt; AVATAR</label>
+                            <div class="flex items-center gap-4">
+                                <img id="settings-avatar-preview" src="/placeholder.svg" alt="Avatar" class="w-20 h-20 rounded-full avatar-frame bg-dark-900">
+                                <div>
+                                    <input type="file" id="settings-avatar" accept="image/*" class="hidden" onchange="previewSettingsAvatar(event)">
+                                    <button onclick="document.getElementById('settings-avatar').click()" class="px-4 py-2 border border-dark-600 rounded text-sm hover:border-neon-green transition-colors">Alterar Avatar</button>
+                                    <span id="settings-avatar-name" class="text-xs text-gray-500 ml-2"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cover upload section -->
+                        <div>
+                            <label class="block text-sm text-neon-green mb-2">&gt; CAPA DO PERFIL</label>
+                            <div class="relative h-24 rounded bg-cover bg-center mb-2" id="settings-cover-preview" style="background-image: url('https://picsum.photos/seed/cyber/800/200');">
+                                <div class="absolute inset-0 bg-gradient-to-t from-dark-800 to-transparent rounded"></div>
+                            </div>
+                            <input type="file" id="settings-cover" accept="image/*" class="hidden" onchange="previewSettingsCover(event)">
+                            <button onclick="document.getElementById('settings-cover').click()" class="px-4 py-2 border border-dark-600 rounded text-sm hover:border-neon-green transition-colors">Alterar Capa</button>
+                            <span id="settings-cover-name" class="text-xs text-gray-500 ml-2"></span>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-neon-green mb-2" data-i18n="UI_LABEL_BIO">&gt; BIO</label>
+                            <textarea id="settings-bio" class="w-full bg-dark-900 border border-dark-600 rounded p-3 resize-none h-24 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_BIO"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-neon-green mb-2" data-i18n="UI_LABEL_EMAIL">&gt; EMAIL</label>
+                            <input type="email" id="settings-email" class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-neon-green mb-2" data-i18n="UI_LABEL_BIRTHDATE">&gt; DATA DE NASCIMENTO</label>
+                            <input type="date" id="settings-birthdate" class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="settings-private" class="w-5 h-5 bg-dark-900 border border-dark-600 rounded focus:ring-neon-green">
+                            <label for="settings-private" class="text-sm text-gray-300" data-i18n="UI_LABEL_PRIVATE">Perfil Privado</label>
+                        </div>
+                        
+                        <button onclick="updateProfile()" class="bg-neon-green text-dark-900 px-6 py-2 rounded font-bold hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_SAVE">&gt; SALVAR_ALTERACOES</button>
+                        
+                        <hr class="border-dark-600">
+                        
+                        <div class="pt-4">
+                            <h3 class="text-red-400 font-bold mb-4" data-i18n="UI_TITLE_DANGER">&gt; ZONA_PERIGOSA</h3>
+                            <button onclick="confirmDeleteAccount()" class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-500 transition-colors" data-i18n="UI_BTN_DELETE_ACCOUNT">&gt; EXCLUIR_CONTA</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin Page for reports management -->
+            <div id="page-admin" class="page hidden p-6">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-bold text-yellow-400 mb-6 glow-text">🛡️ PAINEL ADMIN</h2>
+                    
+                    <div class="bg-dark-800 border border-yellow-600/30 rounded-lg p-6">
+                        <h3 class="text-lg font-bold text-yellow-400 mb-4">&gt; DENUNCIAS PENDENTES</h3>
+                        <div id="admin-reports-list" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <!-- Create Community Modal -->
+    <div id="create-community-modal" class="modal hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-dark-800 border border-dark-600 rounded-lg p-6 w-full max-w-md glow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-neon-green" data-i18n="UI_TITLE_CREATE_COMMUNITY">&gt; CRIAR_COMUNIDADE</h3>
+                <button onclick="closeModal('create-community-modal')" class="text-gray-500 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <form onsubmit="createCommunity(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_NAME">&gt; NOME</label>
+                    <input type="text" id="community-name" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_DESCRIPTION">&gt; DESCRICAO</label>
+                    <textarea id="community-description" class="w-full bg-dark-900 border border-dark-600 rounded p-3 resize-none h-20 focus:border-neon-green focus:outline-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_STATE">&gt; ESTADO</label>
+                        <select id="community-state" onchange="loadCommunityCities()" class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                            <option value="">Opcional...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_CITY">&gt; CIDADE</label>
+                        <select id="community-city" class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                            <option value="">Opcional...</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-neon-green text-dark-900 font-bold py-3 rounded hover:bg-neon-lime transition-colors" data-i18n="UI_BTN_CREATE">&gt; CRIAR</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-dark-800 border border-dark-600 rounded-lg p-6 w-full max-w-md glow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-red-400" data-i18n="UI_TITLE_REPORT">&gt; DENUNCIAR</h3>
+                <button onclick="closeModal('report-modal')" class="text-gray-500 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <form onsubmit="submitReport(event)" class="space-y-4">
+                <input type="hidden" id="report-target-id">
+                <input type="hidden" id="report-type">
+                
+                <div>
+                    <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_CATEGORY">&gt; CATEGORIA</label>
+                    <select id="report-category" required class="w-full bg-dark-900 border border-dark-600 rounded px-4 py-2 focus:border-neon-green focus:outline-none">
+                        <option value="1" data-i18n="UI_REPORT_SPAM">Spam</option>
+                        <option value="2" data-i18n="UI_REPORT_INAPPROPRIATE">Conteudo Improprio</option>
+                        <option value="3" data-i18n="UI_REPORT_HARASSMENT">Assedio</option>
+                        <option value="4" data-i18n="UI_REPORT_FAKE">Fake/Golpe</option>
+                        <option value="5" data-i18n="UI_REPORT_OTHER">Outro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-neon-green mb-1" data-i18n="UI_LABEL_REASON">&gt; MOTIVO</label>
+                    <textarea id="report-reason" required class="w-full bg-dark-900 border border-dark-600 rounded p-3 resize-none h-24 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_REASON"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-500 transition-colors" data-i18n="UI_BTN_SEND_REPORT">&gt; ENVIAR_DENUNCIA</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script>
+        // ===========================================
+        // CONFIGURACAO & ESTADO GLOBAL
+        // ===========================================
+        const API_BASE = '';
+        let authToken = localStorage.getItem('cm_token');
+        let currentUser = localStorage.getItem('cm_user');
+        let myUserId = null; // Store current user ID for admin check
+        let locations = {};
+        let translations = {};
+        let searchTimeout = null;
+        let currentPostMedia = null;
+        let currentCommunityPostMedia = null;
+        let currentCommunityId = null;
+        let currentCommunityData = null;
+        let currentCommunityRole = null;
+        let loadedCommentsCache = {};
+        let settingsAvatarFile = null;
+        let settingsCoverFile = null;
+        let originalSettings = {};
+
+        const DEFAULT_AVATAR = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=0D1117&color=238636`;
+        const DEFAULT_COVER = 'https://picsum.photos/seed/cyber/800/200';
+
+        // ===========================================
+        // SISTEMA DE TRADUCAO (data-i18n)
+        // ===========================================
+        async function loadTranslations() {
+            try {
+                const res = await fetch(`${API_BASE}/api/translations`);
+                if (res.ok) {
+                    translations = await res.json();
+                    applyTranslations();
+                }
+            } catch (err) {
+                console.error('Erro ao carregar traducoes:', err);
+            }
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[key]) {
+                    el.textContent = translations[key];
+                }
+            });
+            
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[key]) {
+                    el.placeholder = translations[key];
+                }
+            });
+        }
+
+        function t(key, fallback = '') {
+            return translations[key] || fallback || key;
+        }
+
+        // ===========================================
+        // INICIALIZACAO
+        // ===========================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Carrega as traduções primeiro (vital)
+            await loadTranslations();
+            await loadLocations();
+
+            // 2. Tenta recuperar o ID salvo
+            const storedId = localStorage.getItem('cm_user_id'); 
+            
+            // 3. Verifica se temos Token, User e ID
+            if (authToken && currentUser && storedId) {
+                showApp();
+                // Agora sim, carrega o perfil com o ID correto (ex: 1) em vez de undefined
+                if (typeof loadUserProfile === 'function') {
+                    loadUserProfile(parseInt(storedId)); 
+                }
+            } else {
+                // Se faltar algo, manda para o login
+                showAuth();
+            }
+        });
+
+        function showAuth() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+        }
+
+        async function showApp() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('user-display').textContent = currentUser;
+            
+            await fetchMyUserId();
+            
+            navigate('feed');
+            loadNotificationsCount();
+        }
+
+        async function fetchMyUserId() {
+            try {
+                const res = await fetch(`${API_BASE}/api/users/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    myUserId = data.id;
+                    // Show admin button if user is admin (ID === 1)
+                    if (myUserId === 1) {
+                        document.getElementById('admin-btn').classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao buscar ID do usuario:', err);
+            }
+        }
+
+        // ===========================================
+        // AUTENTICACAO
+        // ===========================================
+        function switchAuthTab(tab) {
+            const loginTab = document.getElementById('login-tab');
+            const signupTab = document.getElementById('signup-tab');
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+
+            if (tab === 'login') {
+                loginTab.classList.add('text-neon-green', 'border-neon-green');
+                loginTab.classList.remove('text-gray-500', 'border-transparent');
+                signupTab.classList.remove('text-neon-green', 'border-neon-green');
+                signupTab.classList.add('text-gray-500', 'border-transparent');
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            } else {
+                signupTab.classList.add('text-neon-green', 'border-neon-green');
+                signupTab.classList.remove('text-gray-500', 'border-transparent');
+                loginTab.classList.remove('text-neon-green', 'border-neon-green');
+                loginTab.classList.add('text-gray-500', 'border-transparent');
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('login-identifier').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, password })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    authToken = data.token;
+                    currentUser = data.username;
+                    localStorage.setItem('cm_token', authToken);
+                    localStorage.setItem('cm_user', currentUser);
+                    localStorage.setItem('cm_user_id', data.id);
+                    showToast(t('MSG_LOGIN_OK', 'Login realizado!'), 'success');
+                    showApp();
+
+                    if (typeof loadUserProfile === 'function') {
+                        loadUserProfile(data.id);
+                    }
+                } else {
+                    const errorMsg = await getApiMessage(res);
+                    showAuthMessage(errorMsg, 'error');
+                }
+            } catch (err) {
+                showAuthMessage(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const username = document.getElementById('signup-username').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const state = document.getElementById('signup-state').value;
+            const city = document.getElementById('signup-city').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password, state, city })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    // Show modal with user ID
+                    document.getElementById('signup-user-id').textContent = data.id;
+                    document.getElementById('signup-success-modal').classList.remove('hidden');
+                } else {
+                    const errorMsg = await getApiMessage(res);
+                    showAuthMessage(errorMsg, 'error');
+                }
+            } catch (err) {
+                showAuthMessage(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        function closeSignupModal() {
+            document.getElementById('signup-success-modal').classList.add('hidden');
+            switchAuthTab('login');
+        }
+
+        // LOGOUT REAL - localStorage.clear() + reload
+        function logout() {
+            localStorage.clear();
+            window.location.reload();
+        }
+
+        function showAuthMessage(msg, type) {
+            const el = document.getElementById('auth-message');
+            el.textContent = msg;
+            el.classList.remove('hidden', 'text-green-400', 'text-red-400');
+            el.classList.add(type === 'success' ? 'text-green-400' : 'text-red-400');
+        }
+
+        // ===========================================
+        // HELPER: Extrair mensagem da API
+        // ===========================================
+        async function getApiMessage(res, fallback = 'Erro desconhecido') {
+            try {
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await res.json();
+                    return data.message || fallback;
+                } else {
+                    const text = await res.text();
+                    return text || fallback;
+                }
+            } catch {
+                return fallback;
+            }
+        }
+
+        function formatJoinDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                const month = date.toLocaleDateString('pt-BR', { month: 'short' });
+                const year = date.getFullYear();
+                return `${month} ${year}`;
+            } catch {
+                return dateStr;
+            }
+        }
+
+        // ===========================================
+        // NAVEGACAO
+        // ===========================================
+        function navigate(page) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            
+            // Show target page
+            const targetPage = document.getElementById(`page-${page}`);
+            if (targetPage) targetPage.classList.remove('hidden');
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('border-neon-green', 'bg-dark-700');
+                btn.classList.add('border-transparent');
+            });
+            const activeBtn = document.querySelector(`.nav-btn[data-page="${page}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('border-neon-green', 'bg-dark-700');
+                activeBtn.classList.remove('border-transparent');
+            }
+            
+            // Load page content
+            switch(page) {
+                case 'feed':
+                    loadFeed();
+                    break;
+                case 'communities':
+                    loadCommunities();
+                    break;
+                case 'friends':
+                    loadPendingRequests();
+                    break;
+                case 'notifications':
+                    loadNotificationAlerts();
+                    break;
+                case 'settings':
+                    loadCurrentUserSettings(); // Pre-fill settings
+                    break;
+                case 'admin':
+                    loadAdminReports(); // Load admin reports
+                    break;
+            }
+            
+            // Close mobile menu
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        }
+
+        // ===========================================
+        // FEED & POSTS
+        // ===========================================
+        async function loadFeed() {
+            try {
+                const res = await fetch(`${API_BASE}/api/feed`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const posts = await res.json();
+                renderPosts(posts, 'feed-posts');
+            } catch (err) {
+                console.error('Erro ao carregar feed:', err);
+            }
+        }
+
+        function renderPosts(posts, containerId) {
+            const container = document.getElementById(containerId);
+            
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                        <p class="text-gray-500">${t('LBL_NO_POSTS', '> Nenhum post encontrado')}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="bg-dark-800 border border-dark-600 rounded-lg p-4" data-post-id="${post.id}">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <!-- Clickable avatar -->
+                            <img src="${post.avatar_url || DEFAULT_AVATAR(post.author)}" 
+                                 alt="${escapeHtml(post.author)}" 
+                                 class="w-10 h-10 rounded-full avatar-frame clickable-profile"
+                                 onclick="openProfile(${post.author_id || 0})">
+                            <div>
+                                <!-- Clickable username -->
+                                <button onclick="openProfile(${post.author_id || 0})" class="text-neon-green font-bold hover:text-neon-lime transition-colors">
+                                    @${escapeHtml(post.author || 'Usuario')}
+                                </button>
+                                <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <span>${escapeHtml(post.origin || '')}</span>
+                                    ${post.location ? `<span>• ${escapeHtml(post.location)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="openReportModal(${post.id}, 2)" class="text-gray-500 hover:text-red-400 text-sm">[!]</button>
+                    </div>
+                    <p class="text-gray-300 whitespace-pre-wrap mb-3">${escapeHtml(post.content)}</p>
+                    ${renderMedia(post)}
+                    <div class="flex items-center gap-4 mt-3 pt-3 border-t border-dark-600">
+                        <!-- Like button with local DOM update (no reload) -->
+                        <button onclick="toggleLikeLocal(${post.id}, this)" class="flex items-center gap-2 text-sm hover:text-neon-green transition-colors like-btn" data-liked="${post.user_liked ? 'true' : 'false'}">
+                            <span class="like-icon">${post.user_liked ? '❤️' : '🤍'}</span>
+                            <span class="like-count">${post.likes || 0}</span>
+                        </button>
+                        <button onclick="toggleInlineComments(${post.id})" class="flex items-center gap-2 text-sm hover:text-neon-cyan transition-colors">
+                            <span>💬</span>
+                            <!-- Translated COMMENTS to COMENTARIOS -->
+                            <span data-i18n="UI_LABEL_COMMENTS">COMENTARIOS</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Inline Comments Section -->
+                    <div id="inline-comments-${post.id}" class="hidden mt-4 pt-4 border-t border-dark-600">
+                        <div id="comments-list-${post.id}" class="space-y-2 mb-3 max-h-60 overflow-y-auto"></div>
+                        <button id="comments-load-more-${post.id}" onclick="loadMoreComments(${post.id})" class="hidden text-xs text-neon-cyan hover:underline mb-3">
+                            ${t('UI_BTN_LOAD_MORE', 'Carregar mais...')}
+                        </button>
+                        <form onsubmit="addInlineComment(event, ${post.id})" class="flex gap-2">
+                            <input type="text" id="comment-input-${post.id}" class="flex-1 bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm focus:border-neon-green focus:outline-none" placeholder="${t('UI_PLACEHOLDER_COMMENT', 'Escreva um comentario...')}">
+                            <button type="submit" class="bg-neon-green text-dark-900 px-3 py-2 rounded font-bold text-sm hover:bg-neon-lime transition-colors">&gt;</button>
+                        </form>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderMedia(post) {
+            const mediaUrl = post.media_url;
+            const mediaType = post.media_type;
+            
+            if (!mediaUrl) return '';
+            
+            if (mediaType === 'video') {
+                return `<video src="${mediaUrl}" controls class="w-full max-h-96 rounded object-contain bg-black mt-3"></video>`;
+            }
+            return `<img src="${mediaUrl}" alt="Post media" class="w-full max-h-96 rounded object-contain bg-dark-900 mt-3" loading="lazy">`;
+        }
+
+        function previewMedia(e) {
+            const file = e.target.files[0];
+            if (file) {
+                currentPostMedia = file;
+                document.getElementById('media-preview-name').textContent = file.name;
+            }
+        }
+
+        function previewCommunityMedia(e) {
+            const file = e.target.files[0];
+            if (file) {
+                currentCommunityPostMedia = file;
+                document.getElementById('community-media-preview-name').textContent = file.name;
+            }
+        }
+
+        async function createPost() {
+            const content = document.getElementById('post-content').value.trim();
+            if (!content) return showToast(t('ERR_EMPTY_POST', 'Digite algo para publicar'), 'error');
+
+            const payload = { content };
+
+            if (currentCommunityId) {
+                payload.community_id = currentCommunityId;
+            }
+
+            if (currentPostMedia) {
+                const base64 = await fileToBase64(currentPostMedia);
+                payload.media_base64 = base64;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, t('MSG_POST_CREATED', 'Post publicado!'));
+                
+                if (res.ok) {
+                    document.getElementById('post-content').value = '';
+                    document.getElementById('media-preview-name').textContent = '';
+                    currentPostMedia = null;
+                    document.getElementById('post-media').value = '';
+                    showToast(msg, 'success');
+                    loadFeed();
+                } else {
+                    showToast(msg, 'error');
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function createCommunityPost() {
+            const content = document.getElementById('community-post-content').value.trim();
+            if (!content) return showToast(t('ERR_EMPTY_POST', 'Digite algo para publicar'), 'error');
+            if (!currentCommunityId) return showToast(t('ERR_NO_COMMUNITY', 'Nenhuma comunidade selecionada'), 'error');
+
+            const payload = { 
+                content,
+                community_id: currentCommunityId
+            };
+
+            if (currentCommunityPostMedia) {
+                const base64 = await fileToBase64(currentCommunityPostMedia);
+                payload.media_base64 = base64;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, t('MSG_POST_CREATED', 'Post publicado!'));
+                
+                if (res.ok) {
+                    document.getElementById('community-post-content').value = '';
+                    document.getElementById('community-media-preview-name').textContent = '';
+                    currentCommunityPostMedia = null;
+                    document.getElementById('community-post-media').value = '';
+                    showToast(msg, 'success');
+                    loadCommunityPosts(currentCommunityId);
+                } else {
+                    showToast(msg, 'error');
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function toggleLikeLocal(postId, btnElement) {
+            try {
+                const res = await fetch(`${API_BASE}/api/likes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ post_id: postId })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+                
+                if (res.ok) {
+                    const icon = btnElement.querySelector('.like-icon');
+                    const countEl = btnElement.querySelector('.like-count');
+                    const isLiked = btnElement.getAttribute('data-liked') === 'true';
+                    const currentCount = parseInt(countEl.textContent) || 0;
+                    
+                    if (isLiked) {
+                        // Unlike
+                        icon.textContent = '🤍';
+                        countEl.textContent = Math.max(0, currentCount - 1);
+                        btnElement.setAttribute('data-liked', 'false');
+                    } else {
+                        // Like
+                        icon.textContent = '❤️';
+                        countEl.textContent = currentCount + 1;
+                        btnElement.setAttribute('data-liked', 'true');
+                    }
+                    
+                    // Animate
+                    icon.classList.add('like-anim');
+                    setTimeout(() => icon.classList.remove('like-anim'), 300);
+                }
+            } catch (err) {
+                console.error('Erro ao curtir:', err);
+            }
+        }
+
+        // Keep old function for backward compatibility but redirect to local
+        async function toggleLike(postId, btnElement) {
+            return toggleLikeLocal(postId, btnElement);
+        }
+
+        // ===========================================
+        // COMENTARIOS INLINE
+        // ===========================================
+        async function toggleInlineComments(postId) {
+            const container = document.getElementById(`inline-comments-${postId}`);
+            const isHidden = container.classList.contains('hidden');
+            
+            if (isHidden) {
+                container.classList.remove('hidden');
+                await loadInlineComments(postId, false);
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        async function loadInlineComments(postId, loadAll = false) {
+            try {
+                const res = await fetch(`${API_BASE}/api/posts/${postId}/comments`);
+                const comments = await res.json();
+
+                const listContainer = document.getElementById(`comments-list-${postId}`);
+                const loadMoreBtn = document.getElementById(`comments-load-more-${postId}`);
+                
+                loadedCommentsCache[postId] = comments;
+                
+                if (!comments || comments.length === 0) {
+                    listContainer.innerHTML = `<p class="text-gray-500 text-xs">${t('LBL_NO_COMMENTS', '> Sem comentarios ainda...')}</p>`;
+                    loadMoreBtn.classList.add('hidden');
+                    return;
+                }
+
+                const displayCount = loadAll ? comments.length : 5;
+                const displayComments = comments.slice(-displayCount);
+                
+                listContainer.innerHTML = displayComments.map(c => `
+                    <div class="bg-dark-900 border border-dark-700 rounded p-2">
+                        <div class="flex items-center gap-2 mb-1">
+                            <!-- Clickable username in comments -->
+                            <button onclick="openProfile(${c.author_id || 0})" class="text-neon-green text-xs font-bold hover:text-neon-lime">@${escapeHtml(c.author || c.username || 'Usuario')}</button>
+                            <span class="text-xs text-gray-600">${c.date || ''}</span>
+                        </div>
+                        <p class="text-sm text-gray-300">${escapeHtml(c.content)}</p>
+                    </div>
+                `).join('');
+
+                if (comments.length > 5 && !loadAll) {
+                    loadMoreBtn.classList.remove('hidden');
+                } else {
+                    loadMoreBtn.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar comentarios:', err);
+            }
+        }
+
+        function loadMoreComments(postId) {
+            loadInlineComments(postId, true);
+        }
+
+        async function addInlineComment(e, postId) {
+            e.preventDefault();
+            const input = document.getElementById(`comment-input-${postId}`);
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/comments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ post_id: parseInt(postId), content })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                if (res.ok) {
+                    input.value = '';
+                    const msg = await getApiMessage(res, t('MSG_COMMENT_ADDED', 'Comentario adicionado!'));
+                    showToast(msg, 'success');
+                    await loadInlineComments(postId, false);
+                } else {
+                    const err = await getApiMessage(res, t('ERR_COMMENT', 'Erro ao comentar'));
+                    showToast(err, 'error');
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro ao comentar'), 'error');
+            }
+        }
+
+        // ===========================================
+        // PERFIL (Blindado com friend_status)
+        // ===========================================
+        async function openProfile(userId) {
+            if (!userId) return;
+            
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page-profile').classList.remove('hidden');
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/users/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+                if (res.status === 404) {
+                    document.getElementById('profile-content').innerHTML = `
+                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                            <p class="text-red-400">${t('ERR_USER_NOT_FOUND', '> Usuario nao encontrado')}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const profile = await res.json();
+                renderProfile(profile);
+                
+                if (!profile.is_locked) {
+                    await loadUserTimeline(userId);
+                } else {
+                    document.getElementById('profile-timeline').innerHTML = `
+                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                            <div class="text-4xl mb-4">🔒</div>
+                            <p class="text-gray-500">${t('LBL_PRIVATE_PROFILE', '> Perfil privado. Adicione como amigo para ver os posts.')}</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Erro ao carregar perfil:', err);
+            }
+        }
+
+        function renderProfile(profile) {
+            const container = document.getElementById('profile-content');
+            
+            let actionButton = '';
+            switch (profile.friend_status) {
+                case 'self':
+                    actionButton = `<span class="text-neon-cyan text-sm">[${t('LBL_YOUR_PROFILE', 'SEU PERFIL')}]</span>`;
+                    break;
+                case 'friend':
+                    actionButton = `<span class="text-neon-lime text-sm">[${t('LBL_FRIENDS', 'AMIGOS')}]</span>`;
+                    break;
+                case 'pending_sent':
+                    actionButton = `<span class="text-yellow-500 text-sm">[${t('LBL_PENDING', 'PENDENTE')}]</span>`;
+                    break;
+                case 'pending_received':
+                    actionButton = `
+                        <div class="flex gap-2">
+                            <button onclick="respondFriendRequest(${profile.id}, 'accept')" class="bg-neon-green text-dark-900 px-3 py-1 rounded text-sm font-bold hover:bg-neon-lime">[${t('UI_BTN_ACCEPT', 'ACEITAR')}]</button>
+                            <button onclick="respondFriendRequest(${profile.id}, 'reject')" class="bg-red-600/20 border border-red-600 text-red-400 px-3 py-1 rounded text-sm font-bold hover:bg-red-600 hover:text-white">[${t('UI_BTN_REJECT', 'RECUSAR')}]</button>
+                        </div>
+                    `;
+                    break;
+                default:
+                    actionButton = `<button onclick="sendFriendRequest(${profile.id})" class="bg-neon-green text-dark-900 px-3 py-1 rounded text-sm font-bold hover:bg-neon-lime">[+ ${t('UI_BTN_ADD_FRIEND', 'ADICIONAR')}]</button>`;
+            }
+            
+            const avatarUrl = profile.avatar_url || DEFAULT_AVATAR(profile.username);
+            const coverUrl = profile.cover_url || DEFAULT_COVER;
+            
+            container.innerHTML = `
+                <!-- Profile cover -->
+                <div class="relative h-32 rounded-t-lg bg-cover bg-center" style="background-image: url('${coverUrl}');">
+                    <div class="absolute inset-0 bg-gradient-to-t from-dark-800 to-transparent rounded-t-lg"></div>
+                </div>
+                <div class="bg-dark-800 border border-dark-600 border-t-0 rounded-b-lg p-6 -mt-1">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-4 -mt-12">
+                            <!-- Avatar with frame -->
+                            <img src="${avatarUrl}" alt="${escapeHtml(profile.username)}" class="w-20 h-20 rounded-full avatar-frame bg-dark-800">
+                            <div class="mt-8">
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-xl font-bold text-neon-green">@${escapeHtml(profile.username)}</h2>
+                                    ${profile.is_verified ? '<span class="text-neon-cyan text-xs">[VERIFICADO]</span>' : ''}
+                                    ${profile.is_locked ? '<span class="text-red-400 text-xs">[PRIVADO 🔒]</span>' : ''}
+                                </div>
+                                <p class="text-gray-500 text-sm">${escapeHtml(profile.location || t('LBL_UNKNOWN_LOC', 'Localizacao desconhecida'))}</p>
+                                <!-- Date formatted as Month/Year -->
+                                <p class="text-gray-600 text-xs">${t('LBL_JOINED', 'Membro desde')}: ${formatJoinDate(profile.joined_at)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-4">
+                            ${actionButton}
+                            ${profile.friend_status !== 'self' ? `<button onclick="openReportModal(${profile.id}, 1)" class="text-gray-500 hover:text-red-400" title="${t('UI_TITLE_REPORT', 'Denunciar')}">[!]</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="border-t border-dark-600 pt-4">
+                        <p class="text-gray-300">${escapeHtml(profile.bio || t('LBL_NO_BIO', 'Sem bio'))}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadUserTimeline(userId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/users/${userId}/posts`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const posts = await res.json();
+                const container = document.getElementById('profile-timeline');
+                
+                if (!posts || posts.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                            <p class="text-gray-500">${t('LBL_NO_POSTS', '> Nenhum post encontrado')}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = posts.map(post => `
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <span class="text-neon-green font-bold">@${escapeHtml(post.author || 'Usuario')}</span>
+                                <span class="text-gray-500 text-sm ml-2">${escapeHtml(post.origin || '')}</span>
+                            </div>
+                            <button onclick="openReportModal(${post.id}, 2)" class="text-gray-500 hover:text-red-400 text-sm">[!]</button>
+                        </div>
+                        <p class="text-gray-300 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+                        ${renderMedia(post)}
+                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-dark-600">
+                            <span class="text-sm text-gray-500">${post.likes || 0} likes</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Erro ao carregar timeline:', err);
+            }
+        }
+
+        // ===========================================
+        // ===========================================
+        async function openSinglePost(postId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page-single-post').classList.remove('hidden');
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/posts/${postId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (res.status === 404) {
+                    document.getElementById('single-post-content').innerHTML = `
+                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                            <p class="text-red-400">${t('ERR_POST_NOT_FOUND', '> Post nao encontrado')}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (res.ok) {
+                    const post = await res.json();
+                    renderPosts([post], 'single-post-content');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar post:', err);
+                document.getElementById('single-post-content').innerHTML = `
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                        <p class="text-red-400">${t('ERR_CONNECTION', 'Erro de conexao')}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ===========================================
+        // COMUNIDADES (REMAKE COMPLETO)
+        // ===========================================
+        async function loadCommunities() {
+            try {
+                const res = await fetch(`${API_BASE}/api/communities`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const communities = await res.json();
+                const container = document.getElementById('communities-list');
+                
+                if (!communities || communities.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-6 col-span-full text-center">
+                            <p class="text-gray-500">${t('LBL_NO_COMMUNITIES', '> Nenhuma comunidade encontrada...')}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = communities.map(c => `
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg overflow-hidden hover:border-neon-green/50 transition-colors">
+                        <!-- Use cover_url if available -->
+                        <div class="h-24 bg-cover bg-center" style="background-image: url('${c.cover_url || `https://picsum.photos/seed/${c.id}/400/100`}');"></div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <button onclick="openCommunity(${c.id})" class="text-neon-green font-bold text-lg hover:text-neon-lime transition-colors text-left">
+                                    &gt; ${escapeHtml(c.name)}
+                                </button>
+                                <span class="text-xs text-gray-500">${c.members || 0} ${t('LBL_MEMBERS', 'membros')}</span>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">${escapeHtml(c.description || t('LBL_NO_DESC', 'Sem descricao'))}</p>
+                            ${c.location ? `<p class="text-gray-600 text-xs mb-3">${escapeHtml(c.location)}</p>` : ''}
+                            <button onclick="joinCommunity(${c.id})" class="w-full bg-neon-green/20 border border-neon-green text-neon-green px-4 py-2 rounded font-bold hover:bg-neon-green hover:text-dark-900 transition-colors text-sm">
+                                [${t('UI_BTN_JOIN', 'ENTRAR')}]
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Erro ao carregar comunidades:', err);
+            }
+        }
+
+        async function openCommunity(communityId) {
+            currentCommunityId = communityId;
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/${communityId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+                if (!res.ok) {
+                    showToast(t('ERR_LOAD_COMMUNITY', 'Erro ao carregar comunidade'), 'error');
+                    return;
+                }
+
+                const community = await res.json();
+                currentCommunityData = community;
+                currentCommunityRole = community.my_role;
+                
+                // Update UI
+                document.getElementById('communities-list').classList.add('hidden');
+                document.getElementById('community-dashboard').classList.remove('hidden');
+                document.getElementById('back-to-communities').classList.remove('hidden');
+                document.getElementById('create-community-btn').classList.add('hidden');
+                
+                const coverUrl = community.cover_url || `https://picsum.photos/seed/${communityId}/800/200`;
+                document.getElementById('community-cover').style.backgroundImage = `url('${coverUrl}')`;
+                
+                document.getElementById('community-dash-name').innerHTML = `&gt; ${escapeHtml(community.name)}`;
+                document.getElementById('community-dash-desc').textContent = community.description || '';
+                document.getElementById('community-dash-location').textContent = community.location || '';
+                document.getElementById('community-dash-members').textContent = `${community.members || 0} ${t('LBL_MEMBERS', 'membros')}`;
+                
+                // Show/hide admin tab
+                if (community.my_role && community.my_role <= 2) {
+                    document.getElementById('comm-tab-admin').classList.remove('hidden');
+                } else {
+                    document.getElementById('comm-tab-admin').classList.add('hidden');
+                }
+                
+                // Show create post if member
+                if (community.my_role) {
+                    document.getElementById('community-create-post').classList.remove('hidden');
+                } else {
+                    document.getElementById('community-create-post').classList.add('hidden');
+                }
+                
+                // Action button
+                const actionContainer = document.getElementById('community-action-btn');
+                if (community.my_role) {
+                    actionContainer.innerHTML = `<span class="text-neon-lime text-sm">[${t('LBL_MEMBER', 'MEMBRO')}]</span>`;
+                } else {
+                    actionContainer.innerHTML = `
+                        <button onclick="joinCommunity(${communityId})" class="bg-neon-green text-dark-900 px-4 py-2 rounded font-bold hover:bg-neon-lime transition-colors">
+                            [JOIN TERMINAL]
+                        </button>
+                    `;
+                }
+                
+                // Load feed tab by default
+                switchCommunityTab('feed');
+            } catch (err) {
+                console.error('Erro ao abrir comunidade:', err);
+            }
+        }
+
+        function switchCommunityTab(tab) {
+            const tabs = ['feed', 'members', 'admin'];
+            tabs.forEach(t => {
+                document.getElementById(`comm-tab-${t}`).classList.remove('text-neon-cyan', 'border-neon-cyan');
+                document.getElementById(`comm-tab-${t}`).classList.add('text-gray-500', 'border-transparent');
+                document.getElementById(`community-tab-${t}`).classList.add('hidden');
+            });
+            
+            document.getElementById(`comm-tab-${tab}`).classList.add('text-neon-cyan', 'border-neon-cyan');
+            document.getElementById(`comm-tab-${tab}`).classList.remove('text-gray-500', 'border-transparent');
+            document.getElementById(`community-tab-${tab}`).classList.remove('hidden');
+            
+            if (tab === 'feed') {
+                loadCommunityPosts(currentCommunityId);
+            } else if (tab === 'members') {
+                loadCommunityMembers(currentCommunityId);
+            } else if (tab === 'admin') {
+                loadCommunityPendingRequests(currentCommunityId);
+            }
+        }
+
+        async function loadCommunityPosts(communityId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/${communityId}/posts`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+                if (res.status === 403) {
+                    const msg = await getApiMessage(res, t('ERR_PRIVATE_COMMUNITY', 'Comunidade privada'));
+                    document.getElementById('community-posts').innerHTML = `
+                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
+                            <p class="text-red-400">&gt; ${escapeHtml(msg)}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const posts = await res.json();
+                renderPosts(posts, 'community-posts');
+            } catch (err) {
+                console.error('Erro ao carregar posts da comunidade:', err);
+            }
+        }
+
+        async function loadCommunityMembers(communityId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/${communityId}/members`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const members = await res.json();
+                const container = document.getElementById('community-members-list');
+                
+                if (!members || members.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_MEMBERS', '> Nenhum membro encontrado')}</p>`;
+                    return;
+                }
+                
+                const roleLabels = {
+                    1: '[MASTER]',
+                    2: '[ADMIN]',
+                    3: '[MEMBRO]'
+                };
+                
+                container.innerHTML = members.map(m => {
+                    const roleLabel = roleLabels[m.role] || '[MEMBRO]';
+                    const roleColor = m.role === 1 ? 'text-yellow-400' : m.role === 2 ? 'text-neon-cyan' : 'text-gray-500';
+                    const friendClass = m.is_friend ? 'friend-highlight border-2' : '';
+                    const canKick = currentCommunityRole && currentCommunityRole <= 2 && m.role > currentCommunityRole && m.username !== currentUser;
+                    
+                    return `
+                        <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between ${friendClass}">
+                            <!-- Clickable avatar and username -->
+                            <button onclick="openProfile(${m.id})" class="flex items-center gap-3 text-left">
+                                <img src="${m.avatar_url || DEFAULT_AVATAR(m.username)}" alt="" class="w-10 h-10 rounded-full ${m.is_friend ? 'avatar-frame' : ''} clickable-profile">
+                                <div>
+                                    <span class="text-neon-green font-bold hover:text-neon-lime ${m.is_friend ? 'text-neon-lime' : ''}">@${escapeHtml(m.username)}</span>
+                                    <span class="${roleColor} text-xs ml-2">${roleLabel}</span>
+                                    ${m.is_friend ? '<span class="text-xs text-neon-lime ml-1">[AMIGO]</span>' : ''}
+                                </div>
+                            </button>
+                            ${canKick ? `<button onclick="kickMember(${communityId}, ${m.id})" class="text-red-400 hover:text-red-300 text-sm" title="${t('UI_BTN_KICK', 'Remover')}">🗑️</button>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Erro ao carregar membros:', err);
+            }
+        }
+
+        async function loadCommunityPendingRequests(communityId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/${communityId}/requests`);
+                const requests = await res.json();
+                const container = document.getElementById('community-pending-requests');
+                
+                if (!requests || requests.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_PENDING', '> Nenhuma solicitacao pendente')}</p>`;
+                    return;
+                }
+                
+                container.innerHTML = requests.map(r => `
+                    <div class="bg-dark-900 border border-dark-700 rounded p-3 flex items-center justify-between">
+                        <button onclick="openProfile(${r.id})" class="flex items-center gap-3 text-left">
+                            <img src="${r.avatar_url || DEFAULT_AVATAR(r.username)}" alt="" class="w-10 h-10 rounded-full clickable-profile">
+                            <div>
+                                <span class="text-neon-green font-bold">@${escapeHtml(r.username)}</span>
+                                <p class="text-sm text-gray-500">${escapeHtml(r.bio || '')}</p>
+                            </div>
+                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="respondCommunityRequest(${communityId}, ${r.id}, 'accept')" class="bg-neon-green text-dark-900 w-10 h-10 rounded font-bold hover:bg-neon-lime text-lg">[V]</button>
+                            <button onclick="respondCommunityRequest(${communityId}, ${r.id}, 'reject')" class="bg-red-600/20 border border-red-600 text-red-400 w-10 h-10 rounded font-bold hover:bg-red-600 hover:text-white text-lg">[X]</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Erro ao carregar solicitacoes:', err);
+            }
+        }
+
+        async function respondCommunityRequest(communityId, userId, action) {
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/respond_request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ community_id: communityId, user_id: userId, action })
+                });
+                
+                const msg = await getApiMessage(res, res.ok ? t('MSG_REQ_PROCESSED', 'Solicitacao processada!') : t('ERR_PROCESS', 'Erro'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    loadCommunityPendingRequests(communityId);
+                    loadCommunityMembers(communityId);
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function joinCommunity(communityId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ community_id: communityId })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_JOIN_REQ', 'Solicitacao enviada!') : t('ERR_JOIN', 'Erro ao entrar'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok && currentCommunityId === communityId) {
+                    openCommunity(communityId);
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function kickMember(communityId, targetId) {
+            if (!confirm(t('CONFIRM_KICK', 'Tem certeza que deseja remover este membro?'))) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/remove_member`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ community_id: communityId, admin_id: 0, target_id: targetId })
+                });
+                
+                const msg = await getApiMessage(res, res.ok ? t('MSG_MEMBER_REMOVED', 'Membro removido!') : t('ERR_REMOVE', 'Erro ao remover'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    loadCommunityMembers(communityId);
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function leaveCommunity() {
+            if (!confirm(t('CONFIRM_LEAVE', 'Tem certeza que deseja sair desta comunidade?'))) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/communities/leave`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ community_id: currentCommunityId })
+                });
+                
+                const msg = await getApiMessage(res, res.ok ? t('MSG_LEAVE_COMM', 'Voce saiu da comunidade!') : t('ERR_LEAVE', 'Erro ao sair'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    backToCommunities();
+                    loadCommunities();
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        function backToCommunities() {
+            currentCommunityId = null;
+            currentCommunityData = null;
+            currentCommunityRole = null;
+            document.getElementById('communities-list').classList.remove('hidden');
+            document.getElementById('community-dashboard').classList.add('hidden');
+            document.getElementById('back-to-communities').classList.add('hidden');
+            document.getElementById('create-community-btn').classList.remove('hidden');
+            document.getElementById('communities-title').innerHTML = `&gt; ${t('UI_TITLE_COMMUNITIES', 'COMUNIDADES')}`;
+        }
+
+        async function createCommunity(e) {
+            e.preventDefault();
+            const name = document.getElementById('community-name').value.trim();
+            const description = document.getElementById('community-description').value.trim();
+            const state = document.getElementById('community-state').value;
+            const city = document.getElementById('community-city').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/communities`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ name, description, state, city })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_COMM_CREATED', 'Comunidade criada!') : t('ERR_CREATE_COMM', 'Erro ao criar comunidade'));
+                
+                if (res.ok) {
+                    closeModal('create-community-modal');
+                    showToast(msg, 'success');
+                    document.getElementById('community-name').value = '';
+                    document.getElementById('community-description').value = '';
+                    document.getElementById('community-state').value = '';
+                    document.getElementById('community-city').innerHTML = '<option value="">Opcional...</option>';
+                    loadCommunities();
+                } else {
+                    showToast(msg, 'error');
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        // ===========================================
+        // AMIGOS & BUSCA
+        // ===========================================
+        function debounceSearch(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => searchUsers(), 500);
+        }
+
+        function switchFriendsTab(tab) {
+            const pendingTab = document.getElementById('friends-tab-pending');
+            const listTab = document.getElementById('friends-tab-list');
+            const pendingContainer = document.getElementById('pending-requests');
+            const listContainer = document.getElementById('friends-list');
+
+            if (tab === 'pending') {
+                pendingTab.classList.add('text-neon-cyan', 'border-neon-cyan');
+                pendingTab.classList.remove('text-gray-500', 'border-transparent');
+                listTab.classList.remove('text-neon-cyan', 'border-neon-cyan');
+                listTab.classList.add('text-gray-500', 'border-transparent');
+                pendingContainer.classList.remove('hidden');
+                listContainer.classList.add('hidden');
+                loadPendingRequests();
+            } else {
+                listTab.classList.add('text-neon-cyan', 'border-neon-cyan');
+                listTab.classList.remove('text-gray-500', 'border-transparent');
+                pendingTab.classList.remove('text-neon-cyan', 'border-neon-cyan');
+                pendingTab.classList.add('text-gray-500', 'border-transparent');
+                listContainer.classList.remove('hidden');
+                pendingContainer.classList.add('hidden');
+                loadFriendsList();
+            }
+        }
+
+        async function searchUsers() {
+            const query = document.getElementById('search-users').value.trim();
+            if (!query) {
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
+                const users = await res.json();
+
+                const container = document.getElementById('search-results');
+                if (!users || users.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_USERS', '> Nenhum usuario encontrado')}</p>`;
+                } else {
+                    container.innerHTML = users.map(u => `
+                        <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between hover:border-neon-green/50 transition-colors">
+                            <!-- Clickable avatar and username -->
+                            <button onclick="openProfile(${u.id})" class="flex items-center gap-3 text-left flex-1">
+                                <img src="${u.avatar_url || DEFAULT_AVATAR(u.username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                <div>
+                                    <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(u.username)}</span>
+                                    <p class="text-sm text-gray-500">${escapeHtml(u.bio || t('LBL_NO_BIO', 'Sem bio'))}</p>
+                                </div>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Erro na busca:', err);
+            }
+        }
+
+        async function sendFriendRequest(toId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/friends/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ to_id: toId })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_REQ_SENT', 'Solicitacao enviada!') : t('ERR_REQ_EXIST', 'Solicitacao ja existe'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (!document.getElementById('page-profile').classList.contains('hidden')) {
+                    openProfile(toId);
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function loadPendingRequests() {
+            try {
+                const res = await fetch(`${API_BASE}/api/friends/pending`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const data = await res.json();
+                const container = document.getElementById('pending-requests');
+                const requests = Array.isArray(data) ? data : (data.requests || []);
+
+                if (!requests || requests.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_PENDING', '> Nenhuma solicitacao pendente')}</p>`;
+                } else {
+                    container.innerHTML = requests.map(r => {
+                        const username = r.username || r.requester_username || 'Usuario';
+                        const requesterId = r.requester_id || r.id;
+                        
+                        return `
+                            <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between">
+                                <!-- Clickable avatar and username -->
+                                <button onclick="openProfile(${requesterId})" class="flex items-center gap-3 text-left">
+                                    <img src="${r.avatar_url || DEFAULT_AVATAR(username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                    <div>
+                                        <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(username)}</span>
+                                        <p class="text-sm text-gray-500">${t('LBL_WANTS_FRIEND', 'Quer ser seu amigo')}</p>
+                                    </div>
+                                </button>
+                                <div class="flex gap-2">
+                                    <button onclick="respondFriendRequest(${requesterId}, 'accept')" class="bg-neon-green text-dark-900 w-10 h-10 rounded font-bold hover:bg-neon-lime text-lg" title="${t('UI_BTN_ACCEPT', 'Aceitar')}">[V]</button>
+                                    <button onclick="respondFriendRequest(${requesterId}, 'reject')" class="bg-red-600/20 border border-red-600 text-red-400 w-10 h-10 rounded font-bold hover:bg-red-600 hover:text-white text-lg" title="${t('UI_BTN_REJECT', 'Recusar')}">[X]</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar solicitacoes:', err);
+            }
+        }
+
+        async function respondFriendRequest(fromId, action) {
+            try {
+                const res = await fetch(`${API_BASE}/api/friends/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ from_id: fromId, action })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_REQ_RESPONDED', 'Solicitacao respondida!') : t('ERR_RESPOND', 'Erro ao responder'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                loadPendingRequests();
+                loadNotificationsCount();
+                
+                if (!document.getElementById('page-profile').classList.contains('hidden')) {
+                    openProfile(fromId);
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function loadFriendsList() {
+            try {
+                const res = await fetch(`${API_BASE}/api/friends`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const friends = await res.json();
+                const container = document.getElementById('friends-list');
+
+                if (!friends || friends.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_FRIENDS', '> Voce ainda nao tem amigos')}</p>`;
+                } else {
+                    container.innerHTML = friends.map(f => `
+                        <div class="bg-dark-800 border border-neon-lime/30 rounded p-3 flex items-center justify-between friend-highlight">
+                            <!-- Clickable avatar and username -->
+                            <button onclick="openProfile(${f.id})" class="flex items-center gap-3 text-left">
+                                <img src="${f.avatar_url || DEFAULT_AVATAR(f.username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                <div>
+                                    <span class="text-neon-lime font-bold hover:text-neon-green">@${escapeHtml(f.username)}</span>
+                                    <p class="text-sm text-gray-500">${escapeHtml(f.bio || t('LBL_NO_BIO', 'Sem bio'))}</p>
+                                </div>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar amigos:', err);
+            }
+        }
+
+        // ===========================================
+        // NOTIFICACOES
+        // ===========================================
+        function switchNotifTab(tab) {
+            const alertsTab = document.getElementById('notif-tab-alerts');
+            const requestsTab = document.getElementById('notif-tab-requests');
+            const alertsContainer = document.getElementById('notifications-alerts');
+            const requestsContainer = document.getElementById('notifications-requests');
+
+            if (tab === 'alerts') {
+                alertsTab.classList.add('text-neon-cyan', 'border-neon-cyan');
+                alertsTab.classList.remove('text-gray-500', 'border-transparent');
+                requestsTab.classList.remove('text-neon-cyan', 'border-neon-cyan');
+                requestsTab.classList.add('text-gray-500', 'border-transparent');
+                alertsContainer.classList.remove('hidden');
+                requestsContainer.classList.add('hidden');
+                loadNotificationAlerts();
+            } else {
+                requestsTab.classList.add('text-neon-cyan', 'border-neon-cyan');
+                requestsTab.classList.remove('text-gray-500', 'border-transparent');
+                alertsTab.classList.remove('text-neon-cyan', 'border-neon-cyan');
+                alertsTab.classList.add('text-gray-500', 'border-transparent');
+                requestsContainer.classList.remove('hidden');
+                alertsContainer.classList.add('hidden');
+                loadNotificationRequests();
+            }
+        }
+
+        function buildNotificationText(n) {
+            const username = n.from_username || n.username || 'Alguem';
+            switch (n.type) {
+                case 'like':
+                    return `@${username} ${t('NOTIF_LIKED', 'curtiu seu post')}`;
+                case 'comment':
+                    return `@${username} ${t('NOTIF_COMMENTED', 'comentou no seu post')}`;
+                case 'friend_req':
+                    return `@${username} ${t('NOTIF_FRIEND_REQ', 'enviou uma solicitacao de amizade')}`;
+                case 'friend_accepted':
+                    return `@${username} ${t('NOTIF_FRIEND_ACCEPTED', 'aceitou sua solicitacao')}`;
+                case 'community_invite':
+                    return `${t('NOTIF_COMM_INVITE', 'Voce foi convidado para')} ${n.community_name || 'uma comunidade'}`;
+                default:
+                    return n.message || t('NOTIF_DEFAULT', 'Nova notificacao');
+            }
+        }
+
+        function getNotificationClickHandler(n) {
+            switch (n.type) {
+                case 'friend_req':
+                    // Open friends page and switch to requests tab
+                    return `navigate('friends'); setTimeout(() => switchFriendsTab('pending'), 100)`;
+                case 'like':
+                case 'comment':
+                    // Open the specific post
+                    if (n.post_id) {
+                        return `openSinglePost(${n.post_id})`;
+                    }
+                    return '';
+                case 'community_invite':
+                    // Open the community
+                    if (n.community_id) {
+                        return `navigate('communities'); setTimeout(() => openCommunity(${n.community_id}), 100)`;
+                    }
+                    return '';
+                case 'friend_accepted':
+                    // Open the friend's profile
+                    if (n.from_user_id) {
+                        return `openProfile(${n.from_user_id})`;
+                    }
+                    return '';
+                default:
+                    return '';
+            }
+        }
+
+        async function loadNotificationAlerts() {
+            try {
+                const res = await fetch(`${API_BASE}/api/notifications`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const data = await res.json();
+                const container = document.getElementById('notifications-alerts');
+                const notifications = Array.isArray(data) ? data : (data.notifications || []);
+
+                if (!notifications || notifications.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_NOTIFICATIONS', '> Nenhuma notificacao')}</p>`;
+                } else {
+                    container.innerHTML = notifications.map(n => {
+                        const text = buildNotificationText(n);
+                        const clickHandler = getNotificationClickHandler(n);
+                        const bgClass = n.read ? 'bg-dark-800' : 'bg-dark-700';
+                        const borderClass = n.read ? 'border-dark-600' : 'border-neon-cyan';
+                        
+                        return `
+                            <div class="${bgClass} border ${borderClass} rounded p-3 ${clickHandler ? 'cursor-pointer hover:bg-dark-700' : ''} ${n.read ? '' : 'glow'}" ${clickHandler ? `onclick="${clickHandler}"` : ''}>
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <p class="text-gray-300">${escapeHtml(text)}</p>
+                                        <span class="text-xs text-gray-500">${n.created_at || n.date || ''}</span>
+                                    </div>
+                                    ${!n.read ? '<span class="w-2 h-2 bg-neon-cyan rounded-full mt-1 flex-shrink-0"></span>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                updateNotificationBadge(notifications);
+            } catch (err) {
+                console.error('Erro ao carregar notificacoes:', err);
+            }
+        }
+
+        async function loadNotificationRequests() {
+            try {
+                const res = await fetch(`${API_BASE}/api/friends/pending`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const data = await res.json();
+                const container = document.getElementById('notifications-requests');
+                const requests = Array.isArray(data) ? data : (data.requests || []);
+
+                if (!requests || requests.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_PENDING', '> Nenhuma solicitacao pendente')}</p>`;
+                } else {
+                    container.innerHTML = requests.map(r => {
+                        const username = r.username || r.requester_username || 'Usuario';
+                        const requesterId = r.requester_id || r.id;
+                        
+                        return `
+                            <div class="bg-dark-800 border border-neon-cyan rounded p-3 glow">
+                                <div class="flex items-center justify-between">
+                                    <!-- Clickable avatar and username -->
+                                    <button onclick="openProfile(${requesterId})" class="flex items-center gap-3 text-left">
+                                        <img src="${r.avatar_url || DEFAULT_AVATAR(username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                        <div>
+                                            <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(username)}</span>
+                                            <p class="text-sm text-gray-400">${t('LBL_SENT_REQUEST', 'Enviou uma solicitacao de amizade')}</p>
+                                        </div>
+                                    </button>
+                                    <div class="flex gap-2">
+                                        <button onclick="respondFriendRequest(${requesterId}, 'accept')" class="bg-neon-green text-dark-900 w-10 h-10 rounded font-bold hover:bg-neon-lime text-lg" title="${t('UI_BTN_ACCEPT', 'Aceitar')}">[V]</button>
+                                        <button onclick="respondFriendRequest(${requesterId}, 'reject')" class="bg-red-600/20 border border-red-600 text-red-400 w-10 h-10 rounded font-bold hover:bg-red-600 hover:text-white text-lg" title="${t('UI_BTN_REJECT', 'Recusar')}">[X]</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar solicitacoes:', err);
+            }
+        }
+
+        function updateNotificationBadge(notifications) {
+            const badge = document.getElementById('notif-badge');
+            const unreadCount = notifications.filter(n => !n.read).length;
+            
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        async function loadNotificationsCount() {
+            try {
+                const res = await fetch(`${API_BASE}/api/notifications`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const notifications = Array.isArray(data) ? data : (data.notifications || []);
+                    updateNotificationBadge(notifications);
+                }
+            } catch (err) {
+                // Silently fail
+            }
+        }
+
+        async function markNotificationsRead() {
+            try {
+                const res = await fetch(`${API_BASE}/api/notifications/read`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const msg = await getApiMessage(res, t('MSG_NOTIFICATIONS_READ', 'Notificacoes marcadas como lidas'));
+                showToast(msg, 'success');
+                
+                document.getElementById('notif-badge').classList.add('hidden');
+                
+                loadNotificationAlerts();
+            } catch (err) {
+                console.error('Erro:', err);
+            }
+        }
+
+        // ===========================================
+        // CONFIGURACOES & PERFIL
+        // ===========================================
+        
+        async function loadCurrentUserSettings() {
+            try {
+                const res = await fetch(`${API_BASE}/api/users/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (res.ok) {
+                    const user = await res.json();
+                    
+                    // Store original values for comparison
+                    originalSettings = {
+                        bio: user.bio || '',
+                        email: user.email || '',
+                        birth_date: user.birth_date || '',
+                        is_private: user.is_private || false
+                    };
+                    
+                    // Pre-fill form
+                    document.getElementById('settings-bio').value = user.bio || '';
+                    document.getElementById('settings-email').value = user.email || '';
+                    document.getElementById('settings-birthdate').value = user.birth_date || '';
+                    document.getElementById('settings-private').checked = user.is_private || false;
+                    
+                    // Set avatar and cover previews
+                    const avatarUrl = user.avatar_url || DEFAULT_AVATAR(user.username);
+                    const coverUrl = user.cover_url || DEFAULT_COVER;
+                    
+                    document.getElementById('settings-avatar-preview').src = avatarUrl;
+                    document.getElementById('settings-cover-preview').style.backgroundImage = `url('${coverUrl}')`;
+                }
+            } catch (err) {
+                console.error('Erro ao carregar configuracoes:', err);
+            }
+        }
+
+        function previewSettingsAvatar(e) {
+            const file = e.target.files[0];
+            if (file) {
+                settingsAvatarFile = file;
+                document.getElementById('settings-avatar-name').textContent = file.name;
+                
+                // Preview
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    document.getElementById('settings-avatar-preview').src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function previewSettingsCover(e) {
+            const file = e.target.files[0];
+            if (file) {
+                settingsCoverFile = file;
+                document.getElementById('settings-cover-name').textContent = file.name;
+                
+                // Preview
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    document.getElementById('settings-cover-preview').style.backgroundImage = `url('${evt.target.result}')`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function updateProfile() {
+            const bio = document.getElementById('settings-bio').value;
+            const email = document.getElementById('settings-email').value;
+            const birthDate = document.getElementById('settings-birthdate').value;
+            const isPrivate = document.getElementById('settings-private').checked;
+
+            const payload = {};
+            
+            if (bio !== originalSettings.bio) payload.bio = bio;
+            if (email !== originalSettings.email) payload.email = email;
+            if (birthDate !== originalSettings.birth_date) payload.birth_date = birthDate;
+            if (isPrivate !== originalSettings.is_private) payload.is_private = isPrivate;
+            
+            if (settingsAvatarFile) {
+                const avatarBase64 = await fileToBase64(settingsAvatarFile);
+                payload.avatar_base64 = avatarBase64;
+            }
+            
+            if (settingsCoverFile) {
+                const coverBase64 = await fileToBase64(settingsCoverFile);
+                payload.cover_base64 = coverBase64;
+            }
+            
+            // If nothing changed, show message
+            if (Object.keys(payload).length === 0) {
+                showToast(t('MSG_NO_CHANGES', 'Nenhuma alteracao detectada'), 'info');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_PROFILE_UPDATED', 'Perfil atualizado!') : t('ERR_UPDATE', 'Erro ao atualizar'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    // Reset file inputs
+                    settingsAvatarFile = null;
+                    settingsCoverFile = null;
+                    document.getElementById('settings-avatar-name').textContent = '';
+                    document.getElementById('settings-cover-name').textContent = '';
+                    
+                    // Reload settings to update original values
+                    loadCurrentUserSettings();
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function confirmDeleteAccount() {
+            if (!confirm(t('CONFIRM_DELETE_1', 'ATENCAO: Esta acao e IRREVERSIVEL!\n\nDeseja realmente excluir sua conta?'))) return;
+            if (!confirm(t('CONFIRM_DELETE_2', 'ULTIMA CONFIRMACAO: Todos os seus dados serao perdidos. Continuar?'))) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/user`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_USER_DELETED', 'Conta excluida') : t('ERR_DELETE', 'Erro ao excluir conta'));
+                showToast(msg, res.ok ? 'info' : 'error');
+                
+                if (res.ok) logout();
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        // ===========================================
+        // ===========================================
+        async function loadAdminReports() {
+            if (myUserId !== 1) {
+                navigate('feed');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/reports`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (res.status === 401) return handleUnauthorized();
+                if (res.status === 403) {
+                    showToast(t('ERR_NOT_ADMIN', 'Acesso negado'), 'error');
+                    navigate('feed');
+                    return;
+                }
+                
+                const reports = await res.json();
+                const container = document.getElementById('admin-reports-list');
+                
+                if (!reports || reports.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_REPORTS', '> Nenhuma denuncia pendente')}</p>`;
+                    return;
+                }
+                
+                const typeLabels = {
+                    1: 'Usuario',
+                    2: 'Post',
+                    3: 'Comentario'
+                };
+                
+                const categoryLabels = {
+                    1: 'Spam',
+                    2: 'Conteudo Improprio',
+                    3: 'Assedio',
+                    4: 'Fake/Golpe',
+                    5: 'Outro'
+                };
+                
+                container.innerHTML = reports.map(r => `
+                    <div class="bg-dark-900 border border-dark-600 rounded-lg p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <span class="text-yellow-400 font-bold">[${typeLabels[r.type] || 'Desconhecido'}]</span>
+                                <span class="text-gray-400 ml-2">ID: ${r.target_id}</span>
+                                <span class="text-gray-500 ml-2">• ${categoryLabels[r.category] || 'Outro'}</span>
+                            </div>
+                            <span class="text-xs text-gray-600">${r.created_at || ''}</span>
+                        </div>
+                        <p class="text-gray-300 mb-3">${escapeHtml(r.reason || 'Sem motivo especificado')}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Reportado por: @${escapeHtml(r.reporter_username || 'Anonimo')}</span>
+                            <div class="flex gap-2">
+                                <button onclick="handleReport(${r.id}, 'ignore')" class="px-3 py-1 border border-gray-600 text-gray-400 rounded text-sm hover:border-gray-400 transition-colors">Ignorar</button>
+                                <button onclick="handleReport(${r.id}, 'ban')" class="px-3 py-1 bg-red-600/20 border border-red-600 text-red-400 rounded text-sm hover:bg-red-600 hover:text-white transition-colors">Banir/Apagar</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Erro ao carregar denuncias:', err);
+            }
+        }
+
+        async function handleReport(reportId, action) {
+            const confirmMsg = action === 'ban' 
+                ? t('CONFIRM_BAN', 'Tem certeza que deseja BANIR/APAGAR este conteudo?') 
+                : t('CONFIRM_IGNORE', 'Ignorar esta denuncia?');
+            
+            if (!confirm(confirmMsg)) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/reports/${reportId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ action })
+                });
+                
+                const msg = await getApiMessage(res, res.ok ? t('MSG_REPORT_HANDLED', 'Denuncia processada!') : t('ERR_REPORT_HANDLE', 'Erro ao processar'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    loadAdminReports();
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        // ===========================================
+        // DENUNCIAS
+        // ===========================================
+        function openReportModal(targetId, type) {
+            document.getElementById('report-target-id').value = targetId;
+            document.getElementById('report-type').value = type;
+            openModal('report-modal');
+        }
+
+        async function submitReport(e) {
+            e.preventDefault();
+            const targetId = parseInt(document.getElementById('report-target-id').value);
+            const type = parseInt(document.getElementById('report-type').value);
+            const category = parseInt(document.getElementById('report-category').value);
+            const reason = document.getElementById('report-reason').value.trim();
+
+            try {
+                const res = await fetch(`${API_BASE}/api/reports`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ target_id: targetId, type, category, reason })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? t('MSG_REPORT_CREATED', 'Denuncia enviada!') : t('ERR_REPORT', 'Erro ao enviar denuncia'));
+                
+                if (res.ok) {
+                    closeModal('report-modal');
+                    document.getElementById('report-reason').value = '';
+                }
+                showToast(msg, res.ok ? 'success' : 'error');
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        // ===========================================
+        // LOCALIDADES
+        // ===========================================
+        async function loadLocations() {
+            try {
+                const res = await fetch(`${API_BASE}/api/locations`);
+                locations = await res.json();
+                populateStateSelects();
+            } catch (err) {
+                console.error('Erro ao carregar localidades:', err);
+            }
+        }
+
+        function populateStateSelects() {
+            const selects = ['signup-state', 'community-state'];
+            const states = Object.keys(locations).sort();
+
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    states.forEach(state => {
+                        const option = document.createElement('option');
+                        option.value = state;
+                        option.textContent = state;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        function loadCities() {
+            const state = document.getElementById('signup-state').value;
+            const citySelect = document.getElementById('signup-city');
+            citySelect.innerHTML = `<option value="">${t('UI_SELECT_DEFAULT', 'Selecione...')}</option>`;
+
+            if (state && locations[state]) {
+                locations[state].forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+            }
+        }
+
+        function loadCommunityCities() {
+            const state = document.getElementById('community-state').value;
+            const citySelect = document.getElementById('community-city');
+            citySelect.innerHTML = '<option value="">Opcional...</option>';
+
+            if (state && locations[state]) {
+                locations[state].forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+            }
+        }
+
+        // ===========================================
+        // UTILIDADES
+        // ===========================================
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const borderColor = type === 'success' ? 'border-neon-green' : type === 'error' ? 'border-red-500' : 'border-neon-cyan';
+            const iconMap = {
+                success: '[OK]',
+                error: '[ERR]',
+                info: '[INFO]'
+            };
+            
+            toast.className = `bg-dark-800 border ${borderColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 toast-enter`;
+            toast.innerHTML = `
+                <span class="text-xs font-bold ${type === 'success' ? 'text-neon-green' : type === 'error' ? 'text-red-400' : 'text-neon-cyan'}">${iconMap[type] || '[INFO]'}</span>
+                <span class="text-sm">${escapeHtml(message)}</span>
+            `;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function handleUnauthorized() {
+            showToast(t('ERR_SESSION_EXPIRED', 'Sessao expirada. Faca login novamente.'), 'error');
+            logout();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Upload Base64 COMPLETO (sem .split)
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+            });
+        }
+
+        // Close modals on background click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

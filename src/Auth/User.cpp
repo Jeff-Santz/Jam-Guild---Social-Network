@@ -84,16 +84,21 @@ namespace Auth {
 
     bool User::save() {
         auto* db = Core::Database::getInstance();
-        
         if (this->id == -1) {
-            std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, is_private, is_verified, creation_date) VALUES ('" +
+            bool hasAt = (this->email.find('@') != std::string::npos);
+            this->isVerified = hasAt;
+
+            std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, city, state, is_private, is_verified, creation_date) VALUES ('" +
                 this->username + "', '" + 
                 this->email + "', '" + 
                 this->passwordHash + "', '" + 
                 this->bio + "', '" + 
                 this->language + "', '" +
-                this->birthDate + "', " +
-                (this->isPrivate ? "1" : "0") + ", 0, '" + // <--- 0 aqui (Não verificado)
+                this->birthDate + "', '" +
+                this->city + "', '" +    
+                this->state + "', " +   
+                (this->isPrivate ? "1" : "0") + ", " +
+                (this->isVerified ? "1" : "0") + ", '" + 
                 this->creationDate + "');"; 
 
             if (db->execute(sql)) {
@@ -106,20 +111,24 @@ namespace Auth {
 
     bool User::update() {
         if (this->id == -1) return false; 
-
         auto* db = Core::Database::getInstance();
         
-        std::string sql = "UPDATE users SET bio = '" + this->bio + 
-                          "', language = '" + this->language + 
-                          "', birth_date = '" + this->birthDate + 
-                          "' WHERE id = " + std::to_string(this->id) + ";";
+        std::string sql = "UPDATE users SET "
+                        "bio = '" + this->bio + "', "
+                        "language = '" + this->language + "', "
+                        "birth_date = '" + this->birthDate + "', "
+                        "city = '" + this->city + "', "      
+                        "state = '" + this->state + "', "    
+                        "email = '" + this->email + "', "
+                        "is_verified = " + (this->isVerified ? "1" : "0") + " " 
+                        "WHERE id = " + std::to_string(this->id) + ";";
 
         return db->execute(sql);
     }
 
-    bool User::findByEmail(const std::string& email, User& outUser) {
+bool User::findByEmail(const std::string& email, User& outUser) {
         auto* db = Core::Database::getInstance();
-        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private, is_verified FROM users WHERE email = '" + email + "';";
+        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private, is_verified, city, state FROM users WHERE email = '" + email + "';";
         bool found = false;
 
         auto callback = [&](int argc, char** argv, char** colNames) -> int {
@@ -132,13 +141,10 @@ namespace Auth {
             outUser.setLanguage(argv[5] ? argv[5] : "pt_BR");
             outUser.setCreationDate(argv[6] ? argv[6] : "");
             outUser.setBirthDate(argv[7] ? argv[7] : "");
-            
-            bool isPriv = (argv[8] && std::string(argv[8]) == "1");
-            outUser.setPrivate(isPriv);
-
-            // CORREÇÃO: Leitura do novo campo (índice 9)
-            bool isVer = (argv[9] && std::string(argv[9]) == "1");
-            outUser.setVerified(isVer);
+            outUser.setPrivate(argv[8] && std::string(argv[8]) == "1");
+            outUser.setVerified(argv[9] && std::string(argv[9]) == "1");
+            outUser.setCity(argv[10] ? argv[10] : ""); 
+            outUser.setState(argv[11] ? argv[11] : "");
 
             return 0;
         };
@@ -149,7 +155,7 @@ namespace Auth {
 
     bool User::findById(int id, User& outUser) {
         auto* db = Core::Database::getInstance();
-        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private, is_verified FROM users WHERE id = " + std::to_string(id) + ";";
+        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private, is_verified, city, state FROM users WHERE id = " + std::to_string(id) + ";";
         bool found = false;
 
         auto callback = [&](int argc, char** argv, char** colNames) -> int {
@@ -162,10 +168,10 @@ namespace Auth {
             outUser.setLanguage(argv[5] ? argv[5] : "pt_BR");
             outUser.setCreationDate(argv[6] ? argv[6] : "");
             outUser.setBirthDate(argv[7] ? argv[7] : "");
-            bool isPriv = (argv[8] && std::string(argv[8]) == "1");
-            outUser.setPrivate(isPriv);
-            bool isVer = (argv[9] && std::string(argv[9]) == "1");
-            outUser.setVerified(isVer);
+            outUser.setPrivate(argv[8] && std::string(argv[8]) == "1");
+            outUser.setVerified(argv[9] && std::string(argv[9]) == "1");
+            outUser.setCity(argv[10] ? argv[10] : "");
+            outUser.setState(argv[11] ? argv[11] : "");
 
             return 0;
         };
@@ -192,7 +198,6 @@ namespace Auth {
         
         bool success = db->execute(sql);
         if (success) {
-            // Inclua "Content/Notification.h" no topo do User.cpp se não tiver!
             Content::Notification::create(other->getId(), this->id, Content::Notification::FRIEND_REQ, this->id, "NOTIF_FRIEND_REQ");
         }
         return success;
