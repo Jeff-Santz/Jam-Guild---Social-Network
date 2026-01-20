@@ -33,15 +33,19 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
         /* Like animation */
-        @keyframes likeAnim { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
-        .like-anim { animation: likeAnim 0.3s ease-out; }
+        @keyframes heart-burst {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #ff0055; }
+            100% { transform: scale(1); color: #3fb950; } 
+        }
+        .animate-like {
+            animation: heart-burst 0.3s ease-in-out;
+        }
+
         /* Avatar frame */
         .avatar-frame { border: 3px solid #58a6ff; }
         /* Friend highlight */
         .friend-highlight { border-color: #3fb950 !important; }
-        /* Clickable profile */
-        .clickable-profile { cursor: pointer; transition: opacity 0.2s; }
-        .clickable-profile:hover { opacity: 0.8; }
     </style>
 </head>
 <body class="bg-dark-900 text-gray-300 min-h-screen">
@@ -149,10 +153,6 @@
                 <button onclick="navigate('settings')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-neon-green hover:bg-dark-700 transition-colors flex items-center gap-3" data-page="settings">
                     <span class="text-neon-green">&gt;</span> <span data-i18n="UI_NAV_SETTINGS">Configuracoes</span>
                 </button>
-                <!-- Admin button - only visible for admin (myUserId === 1) -->
-                <button id="admin-btn" onclick="navigate('admin')" class="nav-btn w-full text-left px-4 py-3 rounded border border-transparent hover:border-yellow-500 hover:bg-dark-700 transition-colors flex items-center gap-3 hidden" data-page="admin">
-                    <span class="text-yellow-400">🛡️</span> <span class="text-yellow-400">ADMIN</span>
-                </button>
             </nav>
             
             <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-dark-600">
@@ -209,7 +209,6 @@
                     <!-- Community Dashboard View -->
                     <div id="community-dashboard" class="hidden">
                         <!-- Cover & Header -->
-                        <!-- Community cover now uses dynamic cover_url -->
                         <div id="community-cover" class="relative h-48 rounded-t-lg bg-cover bg-center" style="background-image: url('https://picsum.photos/seed/cyber/800/200');">
                             <div class="absolute inset-0 bg-gradient-to-t from-dark-900 to-transparent"></div>
                         </div>
@@ -299,14 +298,6 @@
                 </div>
             </div>
             
-            <!-- Single Post Page for notification deep linking -->
-            <div id="page-single-post" class="page hidden p-6">
-                <div class="max-w-2xl mx-auto">
-                    <button onclick="navigate('feed')" class="text-neon-cyan hover:text-neon-green transition-colors mb-4">&lt; Voltar ao Feed</button>
-                    <div id="single-post-content"></div>
-                </div>
-            </div>
-            
             <!-- Notifications Page -->
             <div id="page-notifications" class="page hidden p-6">
                 <div class="max-w-2xl mx-auto">
@@ -331,30 +322,6 @@
                     <h2 class="text-2xl font-bold text-neon-green mb-6 glow-text" data-i18n="UI_TITLE_SETTINGS">&gt; CONFIGURACOES</h2>
                     
                     <div class="bg-dark-800 border border-dark-600 rounded-lg p-6 space-y-6">
-                        <!-- Avatar upload section -->
-                        <div>
-                            <label class="block text-sm text-neon-green mb-2">&gt; AVATAR</label>
-                            <div class="flex items-center gap-4">
-                                <img id="settings-avatar-preview" src="/placeholder.svg" alt="Avatar" class="w-20 h-20 rounded-full avatar-frame bg-dark-900">
-                                <div>
-                                    <input type="file" id="settings-avatar" accept="image/*" class="hidden" onchange="previewSettingsAvatar(event)">
-                                    <button onclick="document.getElementById('settings-avatar').click()" class="px-4 py-2 border border-dark-600 rounded text-sm hover:border-neon-green transition-colors">Alterar Avatar</button>
-                                    <span id="settings-avatar-name" class="text-xs text-gray-500 ml-2"></span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Cover upload section -->
-                        <div>
-                            <label class="block text-sm text-neon-green mb-2">&gt; CAPA DO PERFIL</label>
-                            <div class="relative h-24 rounded bg-cover bg-center mb-2" id="settings-cover-preview" style="background-image: url('https://picsum.photos/seed/cyber/800/200');">
-                                <div class="absolute inset-0 bg-gradient-to-t from-dark-800 to-transparent rounded"></div>
-                            </div>
-                            <input type="file" id="settings-cover" accept="image/*" class="hidden" onchange="previewSettingsCover(event)">
-                            <button onclick="document.getElementById('settings-cover').click()" class="px-4 py-2 border border-dark-600 rounded text-sm hover:border-neon-green transition-colors">Alterar Capa</button>
-                            <span id="settings-cover-name" class="text-xs text-gray-500 ml-2"></span>
-                        </div>
-                        
                         <div>
                             <label class="block text-sm text-neon-green mb-2" data-i18n="UI_LABEL_BIO">&gt; BIO</label>
                             <textarea id="settings-bio" class="w-full bg-dark-900 border border-dark-600 rounded p-3 resize-none h-24 focus:border-neon-green focus:outline-none" data-i18n-placeholder="UI_PLACEHOLDER_BIO"></textarea>
@@ -383,18 +350,6 @@
                             <h3 class="text-red-400 font-bold mb-4" data-i18n="UI_TITLE_DANGER">&gt; ZONA_PERIGOSA</h3>
                             <button onclick="confirmDeleteAccount()" class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-500 transition-colors" data-i18n="UI_BTN_DELETE_ACCOUNT">&gt; EXCLUIR_CONTA</button>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Admin Page for reports management -->
-            <div id="page-admin" class="page hidden p-6">
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-2xl font-bold text-yellow-400 mb-6 glow-text">🛡️ PAINEL ADMIN</h2>
-                    
-                    <div class="bg-dark-800 border border-yellow-600/30 rounded-lg p-6">
-                        <h3 class="text-lg font-bold text-yellow-400 mb-4">&gt; DENUNCIAS PENDENTES</h3>
-                        <div id="admin-reports-list" class="space-y-4"></div>
                     </div>
                 </div>
             </div>
@@ -479,7 +434,6 @@
         const API_BASE = '';
         let authToken = localStorage.getItem('cm_token');
         let currentUser = localStorage.getItem('cm_user');
-        let myUserId = null; // Store current user ID for admin check
         let locations = {};
         let translations = {};
         let searchTimeout = null;
@@ -489,9 +443,6 @@
         let currentCommunityData = null;
         let currentCommunityRole = null;
         let loadedCommentsCache = {};
-        let settingsAvatarFile = null;
-        let settingsCoverFile = null;
-        let originalSettings = {};
 
         const DEFAULT_AVATAR = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=0D1117&color=238636`;
         const DEFAULT_COVER = 'https://picsum.photos/seed/cyber/800/200';
@@ -508,6 +459,24 @@
                 }
             } catch (err) {
                 console.error('Erro ao carregar traducoes:', err);
+            }
+        }
+
+        async function openProfileByName(username) {
+            try {
+                const res = await fetch(`${API_BASE}/api/search?q=${username}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const users = await res.json();
+                    if (users.length > 0) {
+                        loadUserProfile(users[0].id); // Abre o primeiro que achar
+                    } else {
+                        showToast('Usuário não encontrado', 'error');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
             }
         }
 
@@ -535,22 +504,12 @@
         // INICIALIZACAO
         // ===========================================
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Carrega as traduções primeiro (vital)
             await loadTranslations();
             await loadLocations();
-
-            // 2. Tenta recuperar o ID salvo
-            const storedId = localStorage.getItem('cm_user_id'); 
             
-            // 3. Verifica se temos Token, User e ID
-            if (authToken && currentUser && storedId) {
+            if (authToken && currentUser) {
                 showApp();
-                // Agora sim, carrega o perfil com o ID correto (ex: 1) em vez de undefined
-                if (typeof loadUserProfile === 'function') {
-                    loadUserProfile(parseInt(storedId)); 
-                }
             } else {
-                // Se faltar algo, manda para o login
                 showAuth();
             }
         });
@@ -560,33 +519,12 @@
             document.getElementById('main-app').classList.add('hidden');
         }
 
-        async function showApp() {
+        function showApp() {
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('user-display').textContent = currentUser;
-            
-            await fetchMyUserId();
-            
             navigate('feed');
             loadNotificationsCount();
-        }
-
-        async function fetchMyUserId() {
-            try {
-                const res = await fetch(`${API_BASE}/api/users/me`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    myUserId = data.id;
-                    // Show admin button if user is admin (ID === 1)
-                    if (myUserId === 1) {
-                        document.getElementById('admin-btn').classList.remove('hidden');
-                    }
-                }
-            } catch (err) {
-                console.error('Erro ao buscar ID do usuario:', err);
-            }
         }
 
         // ===========================================
@@ -636,10 +574,6 @@
                     localStorage.setItem('cm_user_id', data.id);
                     showToast(t('MSG_LOGIN_OK', 'Login realizado!'), 'success');
                     showApp();
-
-                    if (typeof loadUserProfile === 'function') {
-                        loadUserProfile(data.id);
-                    }
                 } else {
                     const errorMsg = await getApiMessage(res);
                     showAuthMessage(errorMsg, 'error');
@@ -718,9 +652,7 @@
             if (!dateStr) return 'N/A';
             try {
                 const date = new Date(dateStr);
-                const month = date.toLocaleDateString('pt-BR', { month: 'short' });
-                const year = date.getFullYear();
-                return `${month} ${year}`;
+                return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
             } catch {
                 return dateStr;
             }
@@ -730,14 +662,9 @@
         // NAVEGACAO
         // ===========================================
         function navigate(page) {
-            // Hide all pages
             document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-            
-            // Show target page
-            const targetPage = document.getElementById(`page-${page}`);
-            if (targetPage) targetPage.classList.remove('hidden');
-            
-            // Update nav buttons
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('border-neon-green', 'bg-dark-700');
                 btn.classList.add('border-transparent');
@@ -747,30 +674,25 @@
                 activeBtn.classList.add('border-neon-green', 'bg-dark-700');
                 activeBtn.classList.remove('border-transparent');
             }
-            
-            // Load page content
-            switch(page) {
-                case 'feed':
-                    loadFeed();
+
+            switch (page) {
+                case 'feed': 
+                    currentCommunityId = null;
+                    loadFeed(); 
                     break;
-                case 'communities':
-                    loadCommunities();
+                case 'communities': 
+                    currentCommunityId = null;
+                    backToCommunities();
+                    loadCommunities(); 
                     break;
-                case 'friends':
-                    loadPendingRequests();
+                case 'friends': 
+                    switchFriendsTab('pending');
                     break;
-                case 'notifications':
-                    loadNotificationAlerts();
-                    break;
-                case 'settings':
-                    loadCurrentUserSettings(); // Pre-fill settings
-                    break;
-                case 'admin':
-                    loadAdminReports(); // Load admin reports
+                case 'notifications': 
+                    switchNotifTab('alerts');
                     break;
             }
-            
-            // Close mobile menu
+
             document.getElementById('sidebar').classList.add('-translate-x-full');
         }
 
@@ -802,74 +724,63 @@
             if (!posts || posts.length === 0) {
                 container.innerHTML = `
                     <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
-                        <p class="text-gray-500">${t('LBL_NO_POSTS', '> Nenhum post encontrado')}</p>
+                        <p class="text-gray-500">${t('LBL_NO_POSTS', '> Nenhum post encontrado...')}</p>
                     </div>
                 `;
                 return;
             }
+        
+            container.innerHTML = posts.map(post => {
+                // 1. LÓGICA (CALCULA TUDO ANTES DO HTML)
+                const originLabel = (post.origin && post.origin !== 'Pessoal') 
+                    ? `<span class="inline-block bg-neon-cyan/20 text-neon-cyan text-xs px-2 py-1 rounded mb-2">📍 ${escapeHtml(post.origin)}</span>` 
+                    : '';
 
-            container.innerHTML = posts.map(post => `
-                <div class="bg-dark-800 border border-dark-600 rounded-lg p-4" data-post-id="${post.id}">
-                    <div class="flex items-start justify-between mb-3">
-                        <div class="flex items-center gap-3">
-                            <!-- Clickable avatar -->
-                            <img src="${post.avatar_url || DEFAULT_AVATAR(post.author)}" 
-                                 alt="${escapeHtml(post.author)}" 
-                                 class="w-10 h-10 rounded-full avatar-frame clickable-profile"
-                                 onclick="openProfile(${post.author_id || 0})">
-                            <div>
-                                <!-- Clickable username -->
-                                <button onclick="openProfile(${post.author_id || 0})" class="text-neon-green font-bold hover:text-neon-lime transition-colors">
-                                    @${escapeHtml(post.author || 'Usuario')}
-                                </button>
-                                <div class="flex items-center gap-2 text-xs text-gray-500">
-                                    <span>${escapeHtml(post.origin || '')}</span>
-                                    ${post.location ? `<span>• ${escapeHtml(post.location)}</span>` : ''}
+                // Lógica do @Link
+                let contentHtml = escapeHtml(post.content);
+                contentHtml = contentHtml.replace(/@(\w+)/g, '<span class="text-neon-cyan cursor-pointer hover:underline" onclick="openProfileByName(\'$1\')">@$1</span>');
+
+                // 2. O HTML LIMPO (SÓ AS VARIÁVEIS)
+                return `
+                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-4 hover:border-neon-green/50 transition-colors mb-4" data-post-id="${post.id}">
+                        ${originLabel}
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <img src="${DEFAULT_AVATAR(post.author || post.author_name)}" alt="" class="w-10 h-10 rounded-full avatar-frame">
+                                <div>
+                                    <button onclick="openProfile(${post.author_id || 0})" class="text-neon-green font-bold hover:text-neon-lime transition-colors">@${escapeHtml(post.author || post.author_name || 'Unknown')}</button>
+                                    ${post.location ? `<span class="text-gray-600 text-xs block">${escapeHtml(post.location)}</span>` : ''}
                                 </div>
                             </div>
+                            <button onclick="openReportModal(${post.id}, 2)" class="text-gray-500 hover:text-red-400 text-sm" title="Denunciar">[!]</button>
                         </div>
-                        <button onclick="openReportModal(${post.id}, 2)" class="text-gray-500 hover:text-red-400 text-sm">[!]</button>
-                    </div>
-                    <p class="text-gray-300 whitespace-pre-wrap mb-3">${escapeHtml(post.content)}</p>
-                    ${renderMedia(post)}
-                    <div class="flex items-center gap-4 mt-3 pt-3 border-t border-dark-600">
-                        <!-- Like button with local DOM update (no reload) -->
-                        <button onclick="toggleLikeLocal(${post.id}, this)" class="flex items-center gap-2 text-sm hover:text-neon-green transition-colors like-btn" data-liked="${post.user_liked ? 'true' : 'false'}">
-                            <span class="like-icon">${post.user_liked ? '❤️' : '🤍'}</span>
-                            <span class="like-count">${post.likes || 0}</span>
-                        </button>
-                        <button onclick="toggleInlineComments(${post.id})" class="flex items-center gap-2 text-sm hover:text-neon-cyan transition-colors">
-                            <span>💬</span>
-                            <!-- Translated COMMENTS to COMENTARIOS -->
-                            <span data-i18n="UI_LABEL_COMMENTS">COMENTARIOS</span>
-                        </button>
-                    </div>
-                    
-                    <!-- Inline Comments Section -->
-                    <div id="inline-comments-${post.id}" class="hidden mt-4 pt-4 border-t border-dark-600">
-                        <div id="comments-list-${post.id}" class="space-y-2 mb-3 max-h-60 overflow-y-auto"></div>
-                        <button id="comments-load-more-${post.id}" onclick="loadMoreComments(${post.id})" class="hidden text-xs text-neon-cyan hover:underline mb-3">
-                            ${t('UI_BTN_LOAD_MORE', 'Carregar mais...')}
-                        </button>
-                        <form onsubmit="addInlineComment(event, ${post.id})" class="flex gap-2">
-                            <input type="text" id="comment-input-${post.id}" class="flex-1 bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm focus:border-neon-green focus:outline-none" placeholder="${t('UI_PLACEHOLDER_COMMENT', 'Escreva um comentario...')}">
-                            <button type="submit" class="bg-neon-green text-dark-900 px-3 py-2 rounded font-bold text-sm hover:bg-neon-lime transition-colors">&gt;</button>
-                        </form>
-                    </div>
-                </div>
-            `).join('');
+                        
+                        <p class="mb-4 whitespace-pre-wrap">${contentHtml}</p>
+
+                        ${renderMedia(post)}
+                        
+                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-dark-600">
+                            <button onclick="toggleLike(${post.id}, this)" class="flex items-center gap-1 text-sm hover:text-neon-green transition-colors ${post.liked ? 'text-neon-lime' : ''}" id="like-btn-${post.id}">
+                                <span class="like-icon">${post.liked ? '[♥]' : '[♡]'}</span> <span class="like-count">${post.likes || post.likes_count || 0}</span>
+                            </button>
+                            <button onclick="toggleInlineComments(${post.id})" class="flex items-center gap-1 text-sm hover:text-neon-cyan transition-colors">
+                                [COMMENTS]
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
         }
 
         function renderMedia(post) {
-            const mediaUrl = post.media_url;
-            const mediaType = post.media_type;
+            if (!post.media_url) return '';
             
-            if (!mediaUrl) return '';
+            const mediaType = post.media_type || 'image';
+            const mediaUrl = post.media_url.startsWith('http') ? post.media_url : `${API_BASE}/${post.media_url}`;
             
             if (mediaType === 'video') {
-                return `<video src="${mediaUrl}" controls class="w-full max-h-96 rounded object-contain bg-black mt-3"></video>`;
+                return `<video src="${mediaUrl}" controls class="w-full max-h-96 rounded object-contain bg-black"></video>`;
             }
-            return `<img src="${mediaUrl}" alt="Post media" class="w-full max-h-96 rounded object-contain bg-dark-900 mt-3" loading="lazy">`;
+            return `<img src="${mediaUrl}" alt="Post media" class="w-full max-h-96 rounded object-contain bg-dark-900" loading="lazy">`;
         }
 
         function previewMedia(e) {
@@ -976,49 +887,39 @@
             }
         }
 
-        async function toggleLikeLocal(postId, btnElement) {
+        async function toggleLike(postId, btn) {
+            // Se o botão não foi passado (chamada antiga), tenta achar
+            if (!btn) btn = document.getElementById(`like-btn-${postId}`);
+
+            // UI OPTIMISTIC UPDATE (Atualiza ANTES do servidor responder)
+            const icon = btn.querySelector('.like-icon');
+            const count = btn.querySelector('.like-count');
+            const isLiked = icon.textContent.includes('♥');
+            
+            // Inverte visualmente agora
+            icon.textContent = isLiked ? '[♡]' : '[♥]';
+            count.textContent = parseInt(count.textContent) + (isLiked ? -1 : 1);
+            btn.classList.toggle('text-neon-lime');
+            if (!isLiked) { // Se deu like, anima
+                icon.style.transform = "scale(1.3)";
+                setTimeout(() => icon.style.transform = "scale(1)", 200);
+            }
+
+            // Manda pro servidor em segundo plano
             try {
-                const res = await fetch(`${API_BASE}/api/likes`, {
+                await fetch(`${API_BASE}/api/likes`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                     body: JSON.stringify({ post_id: postId })
                 });
-
-                if (res.status === 401) return handleUnauthorized();
-                
-                if (res.ok) {
-                    const icon = btnElement.querySelector('.like-icon');
-                    const countEl = btnElement.querySelector('.like-count');
-                    const isLiked = btnElement.getAttribute('data-liked') === 'true';
-                    const currentCount = parseInt(countEl.textContent) || 0;
-                    
-                    if (isLiked) {
-                        // Unlike
-                        icon.textContent = '🤍';
-                        countEl.textContent = Math.max(0, currentCount - 1);
-                        btnElement.setAttribute('data-liked', 'false');
-                    } else {
-                        // Like
-                        icon.textContent = '❤️';
-                        countEl.textContent = currentCount + 1;
-                        btnElement.setAttribute('data-liked', 'true');
-                    }
-                    
-                    // Animate
-                    icon.classList.add('like-anim');
-                    setTimeout(() => icon.classList.remove('like-anim'), 300);
-                }
-            } catch (err) {
-                console.error('Erro ao curtir:', err);
+                // Não precisa fazer nada se der certo, já atualizamos a tela
+            } catch (e) {
+                // Se der erro, desfaz a alteração visual (Rollback)
+                icon.textContent = isLiked ? '[❤️]' : '[🤍]';
+                count.textContent = parseInt(count.textContent) + (isLiked ? 1 : -1);
+                btn.classList.toggle('text-neon-lime');
+                showToast('Erro ao curtir', 'error');
             }
-        }
-
-        // Keep old function for backward compatibility but redirect to local
-        async function toggleLike(postId, btnElement) {
-            return toggleLikeLocal(postId, btnElement);
         }
 
         // ===========================================
@@ -1058,8 +959,7 @@
                 listContainer.innerHTML = displayComments.map(c => `
                     <div class="bg-dark-900 border border-dark-700 rounded p-2">
                         <div class="flex items-center gap-2 mb-1">
-                            <!-- Clickable username in comments -->
-                            <button onclick="openProfile(${c.author_id || 0})" class="text-neon-green text-xs font-bold hover:text-neon-lime">@${escapeHtml(c.author || c.username || 'Usuario')}</button>
+                            <span class="text-neon-green text-xs font-bold">@${escapeHtml(c.author || c.username || 'Usuario')}</span>
                             <span class="text-xs text-gray-600">${c.date || ''}</span>
                         </div>
                         <p class="text-sm text-gray-300">${escapeHtml(c.content)}</p>
@@ -1118,6 +1018,7 @@
         // ===========================================
         async function openProfile(userId) {
             if (!userId) return;
+            const targetId = (userId == localStorage.getItem('cm_user_id')) ? 'me' : userId;
             
             document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
             document.getElementById('page-profile').classList.remove('hidden');
@@ -1126,6 +1027,14 @@
                 const res = await fetch(`${API_BASE}/api/users/${userId}`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
+
+                if (res.ok) {
+                    const user = await res.json();
+                    renderUserProfile(user); 
+                    showSection('profile'); 
+                } else {
+                    showToast(t('ERR_USER_NOT_FOUND', 'Usuario nao encontrado'), 'error');
+                }
 
                 if (res.status === 401) return handleUnauthorized();
                 if (res.status === 404) {
@@ -1145,7 +1054,6 @@
                 } else {
                     document.getElementById('profile-timeline').innerHTML = `
                         <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
-                            <div class="text-4xl mb-4">🔒</div>
                             <p class="text-gray-500">${t('LBL_PRIVATE_PROFILE', '> Perfil privado. Adicione como amigo para ver os posts.')}</p>
                         </div>
                     `;
@@ -1181,24 +1089,21 @@
                     actionButton = `<button onclick="sendFriendRequest(${profile.id})" class="bg-neon-green text-dark-900 px-3 py-1 rounded text-sm font-bold hover:bg-neon-lime">[+ ${t('UI_BTN_ADD_FRIEND', 'ADICIONAR')}]</button>`;
             }
             
-            const avatarUrl = profile.avatar_url || DEFAULT_AVATAR(profile.username);
-            const coverUrl = profile.cover_url || DEFAULT_COVER;
-            
             container.innerHTML = `
                 <!-- Profile cover -->
-                <div class="relative h-32 rounded-t-lg bg-cover bg-center" style="background-image: url('${coverUrl}');">
+                <div class="relative h-32 rounded-t-lg bg-cover bg-center" style="background-image: url('${DEFAULT_COVER}');">
                     <div class="absolute inset-0 bg-gradient-to-t from-dark-800 to-transparent rounded-t-lg"></div>
                 </div>
                 <div class="bg-dark-800 border border-dark-600 border-t-0 rounded-b-lg p-6 -mt-1">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center gap-4 -mt-12">
                             <!-- Avatar with frame -->
-                            <img src="${avatarUrl}" alt="${escapeHtml(profile.username)}" class="w-20 h-20 rounded-full avatar-frame bg-dark-800">
+                            <img src="${DEFAULT_AVATAR(profile.username)}" alt="${escapeHtml(profile.username)}" class="w-20 h-20 rounded-full avatar-frame bg-dark-800">
                             <div class="mt-8">
                                 <div class="flex items-center gap-2">
                                     <h2 class="text-xl font-bold text-neon-green">@${escapeHtml(profile.username)}</h2>
                                     ${profile.is_verified ? '<span class="text-neon-cyan text-xs">[VERIFICADO]</span>' : ''}
-                                    ${profile.is_locked ? '<span class="text-red-400 text-xs">[PRIVADO 🔒]</span>' : ''}
+                                    ${profile.is_locked ? '<span class="text-red-400 text-xs">[PRIVADO]</span>' : ''}
                                 </div>
                                 <p class="text-gray-500 text-sm">${escapeHtml(profile.location || t('LBL_UNKNOWN_LOC', 'Localizacao desconhecida'))}</p>
                                 <!-- Date formatted as Month/Year -->
@@ -1257,40 +1162,6 @@
         }
 
         // ===========================================
-        // ===========================================
-        async function openSinglePost(postId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-            document.getElementById('page-single-post').classList.remove('hidden');
-            
-            try {
-                const res = await fetch(`${API_BASE}/api/posts/${postId}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                
-                if (res.status === 404) {
-                    document.getElementById('single-post-content').innerHTML = `
-                        <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
-                            <p class="text-red-400">${t('ERR_POST_NOT_FOUND', '> Post nao encontrado')}</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                if (res.ok) {
-                    const post = await res.json();
-                    renderPosts([post], 'single-post-content');
-                }
-            } catch (err) {
-                console.error('Erro ao carregar post:', err);
-                document.getElementById('single-post-content').innerHTML = `
-                    <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center">
-                        <p class="text-red-400">${t('ERR_CONNECTION', 'Erro de conexao')}</p>
-                    </div>
-                `;
-            }
-        }
-
-        // ===========================================
         // COMUNIDADES (REMAKE COMPLETO)
         // ===========================================
         async function loadCommunities() {
@@ -1315,8 +1186,7 @@
 
                 container.innerHTML = communities.map(c => `
                     <div class="bg-dark-800 border border-dark-600 rounded-lg overflow-hidden hover:border-neon-green/50 transition-colors">
-                        <!-- Use cover_url if available -->
-                        <div class="h-24 bg-cover bg-center" style="background-image: url('${c.cover_url || `https://picsum.photos/seed/${c.id}/400/100`}');"></div>
+                        <div class="h-24 bg-cover bg-center" style="background-image: url('https://picsum.photos/seed/${c.id}/400/100');"></div>
                         <div class="p-4">
                             <div class="flex items-start justify-between mb-2">
                                 <button onclick="openCommunity(${c.id})" class="text-neon-green font-bold text-lg hover:text-neon-lime transition-colors text-left">
@@ -1327,7 +1197,7 @@
                             <p class="text-gray-400 text-sm mb-3">${escapeHtml(c.description || t('LBL_NO_DESC', 'Sem descricao'))}</p>
                             ${c.location ? `<p class="text-gray-600 text-xs mb-3">${escapeHtml(c.location)}</p>` : ''}
                             <button onclick="joinCommunity(${c.id})" class="w-full bg-neon-green/20 border border-neon-green text-neon-green px-4 py-2 rounded font-bold hover:bg-neon-green hover:text-dark-900 transition-colors text-sm">
-                                [${t('UI_BTN_JOIN', 'ENTRAR')}]
+                                [JOIN TERMINAL]
                             </button>
                         </div>
                     </div>
@@ -1337,57 +1207,87 @@
             }
         }
 
-        async function openCommunity(communityId) {
-            currentCommunityId = communityId;
-            
+        async function joinCommunity(communityId) {
             try {
-                const res = await fetch(`${API_BASE}/api/communities/${communityId}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const res = await fetch(`${API_BASE}/api/communities/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ community_id: communityId })
                 });
 
                 if (res.status === 401) return handleUnauthorized();
-                if (!res.ok) {
-                    showToast(t('ERR_LOAD_COMMUNITY', 'Erro ao carregar comunidade'), 'error');
-                    return;
-                }
 
-                const community = await res.json();
-                currentCommunityData = community;
-                currentCommunityRole = community.my_role;
+                const responseText = await res.text();
                 
-                // Update UI
-                document.getElementById('communities-list').classList.add('hidden');
-                document.getElementById('community-dashboard').classList.remove('hidden');
-                document.getElementById('back-to-communities').classList.remove('hidden');
-                document.getElementById('create-community-btn').classList.add('hidden');
-                
-                const coverUrl = community.cover_url || `https://picsum.photos/seed/${communityId}/800/200`;
-                document.getElementById('community-cover').style.backgroundImage = `url('${coverUrl}')`;
-                
-                document.getElementById('community-dash-name').innerHTML = `&gt; ${escapeHtml(community.name)}`;
-                document.getElementById('community-dash-desc').textContent = community.description || '';
-                document.getElementById('community-dash-location').textContent = community.location || '';
-                document.getElementById('community-dash-members').textContent = `${community.members || 0} ${t('LBL_MEMBERS', 'membros')}`;
-                
-                // Show/hide admin tab
-                if (community.my_role && community.my_role <= 2) {
-                    document.getElementById('comm-tab-admin').classList.remove('hidden');
+                if (responseText === 'JOINED_DIRECTLY') {
+                    showToast(t('MSG_JOINED_DIRECTLY', 'Voce entrou na comunidade!'), 'success');
+                    loadCommunities();
+                } else if (responseText === 'REQUEST_SENT') {
+                    showToast(t('MSG_REQ_SENT', 'Solicitacao enviada! Aguarde aprovacao.'), 'info');
                 } else {
-                    document.getElementById('comm-tab-admin').classList.add('hidden');
+                    showToast(responseText || t('ERR_JOIN', 'Erro ao entrar'), res.ok ? 'success' : 'error');
+                }
+            } catch (err) {
+                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
+            }
+        }
+
+        async function openCommunity(communityId) {
+            currentCommunityId = communityId;
+            
+            document.getElementById('communities-list').classList.add('hidden');
+            document.getElementById('community-dashboard').classList.remove('hidden');
+            document.getElementById('back-to-communities').classList.remove('hidden');
+            document.getElementById('create-community-btn').classList.add('hidden');
+            
+            try {
+                // Load community info
+                const commRes = await fetch(`${API_BASE}/api/communities`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const communities = await commRes.json();
+                const comm = communities.find(c => c.id === communityId);
+                
+                if (comm) {
+                    currentCommunityData = comm;
+                    document.getElementById('community-cover').style.backgroundImage = `url('https://picsum.photos/seed/${comm.id}/800/200')`;
+                    document.getElementById('community-dash-name').textContent = `> ${comm.name}`;
+                    document.getElementById('community-dash-desc').textContent = comm.description || t('LBL_NO_DESC', 'Sem descricao');
+                    document.getElementById('community-dash-location').textContent = comm.location || '';
+                    document.getElementById('community-dash-members').textContent = `${comm.members || 0} ${t('LBL_MEMBERS', 'membros')}`;
+                    document.getElementById('communities-title').innerHTML = `&gt; ${escapeHtml(comm.name)}`;
                 }
                 
-                // Show create post if member
-                if (community.my_role) {
-                    document.getElementById('community-create-post').classList.remove('hidden');
-                } else {
-                    document.getElementById('community-create-post').classList.add('hidden');
-                }
+                // Check membership and role
+                const membersRes = await fetch(`${API_BASE}/api/communities/${communityId}/members`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const members = await membersRes.json();
                 
-                // Action button
+                // Find current user in members
+                const currentUserMember = members.find(m => m.username === currentUser);
+                currentCommunityRole = currentUserMember ? currentUserMember.role : null;
+                
+                // Update action button
                 const actionContainer = document.getElementById('community-action-btn');
-                if (community.my_role) {
+                if (currentCommunityRole !== null) {
+                    // User is a member
+                    document.getElementById('community-create-post').classList.remove('hidden');
                     actionContainer.innerHTML = `<span class="text-neon-lime text-sm">[${t('LBL_MEMBER', 'MEMBRO')}]</span>`;
+                    
+                    // Show admin tab if admin/master
+                    if (currentCommunityRole <= 2) {
+                        document.getElementById('comm-tab-admin').classList.remove('hidden');
+                    } else {
+                        document.getElementById('comm-tab-admin').classList.add('hidden');
+                    }
                 } else {
+                    // Not a member
+                    document.getElementById('community-create-post').classList.add('hidden');
+                    document.getElementById('comm-tab-admin').classList.add('hidden');
                     actionContainer.innerHTML = `
                         <button onclick="joinCommunity(${communityId})" class="bg-neon-green text-dark-900 px-4 py-2 rounded font-bold hover:bg-neon-lime transition-colors">
                             [JOIN TERMINAL]
@@ -1475,9 +1375,8 @@
                     
                     return `
                         <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between ${friendClass}">
-                            <!-- Clickable avatar and username -->
                             <button onclick="openProfile(${m.id})" class="flex items-center gap-3 text-left">
-                                <img src="${m.avatar_url || DEFAULT_AVATAR(m.username)}" alt="" class="w-10 h-10 rounded-full ${m.is_friend ? 'avatar-frame' : ''} clickable-profile">
+                                <img src="${DEFAULT_AVATAR(m.username)}" alt="" class="w-10 h-10 rounded-full ${m.is_friend ? 'avatar-frame' : ''}">
                                 <div>
                                     <span class="text-neon-green font-bold hover:text-neon-lime ${m.is_friend ? 'text-neon-lime' : ''}">@${escapeHtml(m.username)}</span>
                                     <span class="${roleColor} text-xs ml-2">${roleLabel}</span>
@@ -1507,7 +1406,7 @@
                 container.innerHTML = requests.map(r => `
                     <div class="bg-dark-900 border border-dark-700 rounded p-3 flex items-center justify-between">
                         <button onclick="openProfile(${r.id})" class="flex items-center gap-3 text-left">
-                            <img src="${r.avatar_url || DEFAULT_AVATAR(r.username)}" alt="" class="w-10 h-10 rounded-full clickable-profile">
+                            <img src="${DEFAULT_AVATAR(r.username)}" alt="" class="w-10 h-10 rounded-full">
                             <div>
                                 <span class="text-neon-green font-bold">@${escapeHtml(r.username)}</span>
                                 <p class="text-sm text-gray-500">${escapeHtml(r.bio || '')}</p>
@@ -1541,30 +1440,6 @@
                 if (res.ok) {
                     loadCommunityPendingRequests(communityId);
                     loadCommunityMembers(communityId);
-                }
-            } catch (err) {
-                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
-            }
-        }
-
-        async function joinCommunity(communityId) {
-            try {
-                const res = await fetch(`${API_BASE}/api/communities/join`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ community_id: communityId })
-                });
-
-                if (res.status === 401) return handleUnauthorized();
-
-                const msg = await getApiMessage(res, res.ok ? t('MSG_JOIN_REQ', 'Solicitacao enviada!') : t('ERR_JOIN', 'Erro ao entrar'));
-                showToast(msg, res.ok ? 'success' : 'error');
-                
-                if (res.ok && currentCommunityId === communityId) {
-                    openCommunity(communityId);
                 }
             } catch (err) {
                 showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
@@ -1718,9 +1593,8 @@
                 } else {
                     container.innerHTML = users.map(u => `
                         <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between hover:border-neon-green/50 transition-colors">
-                            <!-- Clickable avatar and username -->
                             <button onclick="openProfile(${u.id})" class="flex items-center gap-3 text-left flex-1">
-                                <img src="${u.avatar_url || DEFAULT_AVATAR(u.username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                <img src="${DEFAULT_AVATAR(u.username)}" alt="" class="w-10 h-10 rounded-full avatar-frame">
                                 <div>
                                     <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(u.username)}</span>
                                     <p class="text-sm text-gray-500">${escapeHtml(u.bio || t('LBL_NO_BIO', 'Sem bio'))}</p>
@@ -1779,9 +1653,8 @@
                         
                         return `
                             <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between">
-                                <!-- Clickable avatar and username -->
                                 <button onclick="openProfile(${requesterId})" class="flex items-center gap-3 text-left">
-                                    <img src="${r.avatar_url || DEFAULT_AVATAR(username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                    <img src="${DEFAULT_AVATAR(username)}" alt="" class="w-10 h-10 rounded-full avatar-frame">
                                     <div>
                                         <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(username)}</span>
                                         <p class="text-sm text-gray-500">${t('LBL_WANTS_FRIEND', 'Quer ser seu amigo')}</p>
@@ -1800,33 +1673,6 @@
             }
         }
 
-        async function respondFriendRequest(fromId, action) {
-            try {
-                const res = await fetch(`${API_BASE}/api/friends/respond`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ from_id: fromId, action })
-                });
-
-                if (res.status === 401) return handleUnauthorized();
-
-                const msg = await getApiMessage(res, res.ok ? t('MSG_REQ_RESPONDED', 'Solicitacao respondida!') : t('ERR_RESPOND', 'Erro ao responder'));
-                showToast(msg, res.ok ? 'success' : 'error');
-                
-                loadPendingRequests();
-                loadNotificationsCount();
-                
-                if (!document.getElementById('page-profile').classList.contains('hidden')) {
-                    openProfile(fromId);
-                }
-            } catch (err) {
-                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
-            }
-        }
-
         async function loadFriendsList() {
             try {
                 const res = await fetch(`${API_BASE}/api/friends`, {
@@ -1839,18 +1685,18 @@
                 const container = document.getElementById('friends-list');
 
                 if (!friends || friends.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_FRIENDS', '> Voce ainda nao tem amigos')}</p>`;
+                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_FRIENDS', '> Voce ainda nao tem amigos adicionados')}</p>`;
                 } else {
                     container.innerHTML = friends.map(f => `
-                        <div class="bg-dark-800 border border-neon-lime/30 rounded p-3 flex items-center justify-between friend-highlight">
-                            <!-- Clickable avatar and username -->
+                        <div class="bg-dark-800 border border-dark-600 rounded p-3 flex items-center justify-between">
                             <button onclick="openProfile(${f.id})" class="flex items-center gap-3 text-left">
-                                <img src="${f.avatar_url || DEFAULT_AVATAR(f.username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                <img src="${DEFAULT_AVATAR(f.username)}" alt="" class="w-10 h-10 rounded-full avatar-frame">
                                 <div>
-                                    <span class="text-neon-lime font-bold hover:text-neon-green">@${escapeHtml(f.username)}</span>
+                                    <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(f.username)}</span>
                                     <p class="text-sm text-gray-500">${escapeHtml(f.bio || t('LBL_NO_BIO', 'Sem bio'))}</p>
                                 </div>
                             </button>
+                            <span class="text-xs text-neon-lime">[CONNECTED]</span>
                         </div>
                     `).join('');
                 }
@@ -1859,9 +1705,90 @@
             }
         }
 
+        async function respondFriendRequest(requesterId, action) {
+            try {
+                const res = await fetch(`${API_BASE}/api/friends/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ requester_id: requesterId, action })
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const msg = await getApiMessage(res, res.ok ? (action === 'accept' ? t('MSG_FRIEND_ACCEPTED', 'Amizade aceita!') : t('MSG_FRIEND_REJECTED', 'Solicitacao recusada')) : t('ERR_PROCESS', 'Erro ao processar'));
+                showToast(msg, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    loadPendingRequests();
+                    loadNotificationsCount();
+                    
+                    if (!document.getElementById('page-profile').classList.contains('hidden')) {
+                        openProfile(requesterId);
+                    }
+                }
+            } catch (err) {
+                showToast(t('ERR_PROCESS', 'Erro ao processar'), 'error');
+            }
+        }
+
         // ===========================================
-        // NOTIFICACOES
+        // NOTIFICACOES INTELIGENTES
         // ===========================================
+        async function loadNotificationAlerts() {
+            try {
+                const res = await fetch(`${API_BASE}/api/notifications`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (res.status === 401) return handleUnauthorized();
+
+                const data = await res.json();
+                // Garante que é array (seja lista direta ou objeto com chave notifications)
+                const notifications = Array.isArray(data) ? data : (data.notifications || []);
+                const container = document.getElementById('notifications-alerts');
+
+                if (notifications.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500 text-center py-4">Nenhuma notificação.</p>`;
+                    return;
+                }
+
+                container.innerHTML = notifications.map(n => {
+                    // Texto Inteligente
+                    let text = n.message || 'Nova notificação';
+                    // Tenta achar o nome do remetente
+                    const name = n.sender_name || n.username || 'Alguém';
+                    
+                    if (n.type === 1) text = `<strong>@${name}</strong> curtiu seu post.`;
+                    if (n.type === 2) text = `<strong>@${name}</strong> comentou no seu post.`;
+                    if (n.type === 3) text = `<strong>@${name}</strong> enviou solicitação.`;
+                    if (n.type === 4) text = `<strong>@${name}</strong> te convidou para comunidade.`;
+
+                    // Estilo: Lidas ficam apagadas, Novas ficam brilhando
+                    const bgClass = n.read ? 'bg-dark-900 border-dark-600 opacity-60' : 'bg-dark-800 border-neon-cyan glow';
+                    
+                    // Ação de clique
+                    let action = '';
+                    if (n.type === 1 || n.type === 2) action = "showSection('feed')";
+                    if (n.type === 3) action = "switchNotifTab('requests')";
+                    if (n.type === 4 && n.community_id) action = `openCommunity(${n.community_id})`;
+
+                    return `
+                        <div class="${bgClass} border rounded p-3 mb-2 cursor-pointer hover:bg-dark-700 transition-all relative" onclick="${action}">
+                            <p class="text-sm text-gray-300">${text}</p>
+                            <span class="text-xs text-gray-500 block mt-1">${n.created_at || ''}</span>
+                            ${!n.read ? '<span class="absolute top-2 right-2 w-2 h-2 bg-neon-cyan rounded-full"></span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
         function switchNotifTab(tab) {
             const alertsTab = document.getElementById('notif-tab-alerts');
             const requestsTab = document.getElementById('notif-tab-requests');
@@ -1887,48 +1814,35 @@
             }
         }
 
+        // Interpreta os códigos do Router.cpp (1=Like, 2=Comment, etc)
         function buildNotificationText(n) {
-            const username = n.from_username || n.username || 'Alguem';
+            // Backend pode mandar 'sender_name' ou 'username', o front garante os dois
+            const name = n.sender_name || n.username || 'Alguém';
+            
             switch (n.type) {
-                case 'like':
-                    return `@${username} ${t('NOTIF_LIKED', 'curtiu seu post')}`;
-                case 'comment':
-                    return `@${username} ${t('NOTIF_COMMENTED', 'comentou no seu post')}`;
-                case 'friend_req':
-                    return `@${username} ${t('NOTIF_FRIEND_REQ', 'enviou uma solicitacao de amizade')}`;
-                case 'friend_accepted':
-                    return `@${username} ${t('NOTIF_FRIEND_ACCEPTED', 'aceitou sua solicitacao')}`;
-                case 'community_invite':
-                    return `${t('NOTIF_COMM_INVITE', 'Voce foi convidado para')} ${n.community_name || 'uma comunidade'}`;
-                default:
-                    return n.message || t('NOTIF_DEFAULT', 'Nova notificacao');
+                case 1: return `<strong>@${name}</strong> curtiu seu post.`;
+                case 2: return `<strong>@${name}</strong> comentou: "${escapeHtml(n.content || '')}"`;
+                case 3: return `<strong>@${name}</strong> enviou solicitação de amizade.`;
+                case 4: return `<strong>@${name}</strong> convidou para comunidade.`;
+                default: return n.message || 'Nova notificação';
             }
         }
 
         function getNotificationClickHandler(n) {
+            // Aqui resolvemos o redirecionamento
             switch (n.type) {
-                case 'friend_req':
-                    // Open friends page and switch to requests tab
-                    return `navigate('friends'); setTimeout(() => switchFriendsTab('pending'), 100)`;
-                case 'like':
-                case 'comment':
-                    // Open the specific post
-                    if (n.post_id) {
-                        return `openSinglePost(${n.post_id})`;
-                    }
-                    return '';
-                case 'community_invite':
-                    // Open the community
-                    if (n.community_id) {
-                        return `navigate('communities'); setTimeout(() => openCommunity(${n.community_id}), 100)`;
-                    }
-                    return '';
-                case 'friend_accepted':
-                    // Open the friend's profile
-                    if (n.from_user_id) {
-                        return `openProfile(${n.from_user_id})`;
-                    }
-                    return '';
+                case 1: // Like
+                case 2: // Comment
+                    // Se tiver ID do post, tenta ir pra ele (ou pro feed se não tivermos view de post unico ainda)
+                    // O ideal seria criar uma função loadSinglePost(id), mas por enquanto vamos pro feed
+                    return n.post_id ? `showSection('feed'); /* TODO: Scroll to post ${n.post_id} */` : '';
+                
+                case 3: // Friend request - Vai pra aba de Requests
+                    return `switchNotifTab('requests')`;
+                
+                case 4: // Community - Vai pra comunidade
+                    return n.community_id ? `openCommunity(${n.community_id})` : '';
+                
                 default:
                     return '';
             }
@@ -1939,40 +1853,40 @@
                 const res = await fetch(`${API_BASE}/api/notifications`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-
-                if (res.status === 401) return handleUnauthorized();
-
                 const data = await res.json();
-                const container = document.getElementById('notifications-alerts');
-                const notifications = Array.isArray(data) ? data : (data.notifications || []);
-
-                if (!notifications || notifications.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_NOTIFICATIONS', '> Nenhuma notificacao')}</p>`;
-                } else {
-                    container.innerHTML = notifications.map(n => {
-                        const text = buildNotificationText(n);
-                        const clickHandler = getNotificationClickHandler(n);
-                        const bgClass = n.read ? 'bg-dark-800' : 'bg-dark-700';
-                        const borderClass = n.read ? 'border-dark-600' : 'border-neon-cyan';
-                        
-                        return `
-                            <div class="${bgClass} border ${borderClass} rounded p-3 ${clickHandler ? 'cursor-pointer hover:bg-dark-700' : ''} ${n.read ? '' : 'glow'}" ${clickHandler ? `onclick="${clickHandler}"` : ''}>
-                                <div class="flex items-start justify-between">
-                                    <div class="flex-1">
-                                        <p class="text-gray-300">${escapeHtml(text)}</p>
-                                        <span class="text-xs text-gray-500">${n.created_at || n.date || ''}</span>
-                                    </div>
-                                    ${!n.read ? '<span class="w-2 h-2 bg-neon-cyan rounded-full mt-1 flex-shrink-0"></span>' : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
+                const list = Array.isArray(data) ? data : (data.notifications || []);
                 
-                updateNotificationBadge(notifications);
-            } catch (err) {
-                console.error('Erro ao carregar notificacoes:', err);
-            }
+                const container = document.getElementById('notifications-alerts');
+                if(list.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 p-4">Nada por aqui.</p>';
+                    return;
+                }
+
+                container.innerHTML = list.map(n => {
+                    // Se read=false, usa borda Neon. Se true, fica cinza.
+                    const style = n.read 
+                        ? 'bg-dark-900 border-dark-600 opacity-60' 
+                        : 'bg-dark-800 border-neon-cyan glow';
+                        
+                    // Ação de clique
+                    let action = '';
+                    if(n.type == 3) action = "switchNotifTab('requests')";
+                    else if(n.type == 4) action = `openCommunity(${n.community_id})`;
+                    else action = "showSection('home')"; // Ou openPost(n.post_id) no futuro
+
+                    return `
+                    <div class="${style} border rounded p-3 mb-2 cursor-pointer hover:bg-dark-700 relative" onclick="${action}">
+                        <p class="text-sm text-gray-300">${buildNotificationText(n)}</p>
+                        <span class="text-xs text-gray-500">${n.created_at || ''}</span>
+                        ${!n.read ? '<span class="absolute top-2 right-2 w-2 h-2 bg-neon-cyan rounded-full"></span>' : ''}
+                    </div>`;
+                }).join('');
+                
+                // Atualiza badge (conta só as false)
+                const unread = list.filter(x => !x.read).length;
+                updateNotificationBadge(unread); // Certifique-se que essa func existe ou crie uma simples
+
+            } catch (e) { console.error(e); }
         }
 
         async function loadNotificationRequests() {
@@ -1997,9 +1911,8 @@
                         return `
                             <div class="bg-dark-800 border border-neon-cyan rounded p-3 glow">
                                 <div class="flex items-center justify-between">
-                                    <!-- Clickable avatar and username -->
                                     <button onclick="openProfile(${requesterId})" class="flex items-center gap-3 text-left">
-                                        <img src="${r.avatar_url || DEFAULT_AVATAR(username)}" alt="" class="w-10 h-10 rounded-full avatar-frame clickable-profile">
+                                        <img src="${DEFAULT_AVATAR(username)}" alt="" class="w-10 h-10 rounded-full avatar-frame">
                                         <div>
                                             <span class="text-neon-green font-bold hover:text-neon-lime">@${escapeHtml(username)}</span>
                                             <p class="text-sm text-gray-400">${t('LBL_SENT_REQUEST', 'Enviou uma solicitacao de amizade')}</p>
@@ -2056,10 +1969,8 @@
                 
                 const msg = await getApiMessage(res, t('MSG_NOTIFICATIONS_READ', 'Notificacoes marcadas como lidas'));
                 showToast(msg, 'success');
-                
-                document.getElementById('notif-badge').classList.add('hidden');
-                
                 loadNotificationAlerts();
+                updateNotificationBadge([]);
             } catch (err) {
                 console.error('Erro:', err);
             }
@@ -2068,100 +1979,11 @@
         // ===========================================
         // CONFIGURACOES & PERFIL
         // ===========================================
-        
-        async function loadCurrentUserSettings() {
-            try {
-                const res = await fetch(`${API_BASE}/api/users/me`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                
-                if (res.ok) {
-                    const user = await res.json();
-                    
-                    // Store original values for comparison
-                    originalSettings = {
-                        bio: user.bio || '',
-                        email: user.email || '',
-                        birth_date: user.birth_date || '',
-                        is_private: user.is_private || false
-                    };
-                    
-                    // Pre-fill form
-                    document.getElementById('settings-bio').value = user.bio || '';
-                    document.getElementById('settings-email').value = user.email || '';
-                    document.getElementById('settings-birthdate').value = user.birth_date || '';
-                    document.getElementById('settings-private').checked = user.is_private || false;
-                    
-                    // Set avatar and cover previews
-                    const avatarUrl = user.avatar_url || DEFAULT_AVATAR(user.username);
-                    const coverUrl = user.cover_url || DEFAULT_COVER;
-                    
-                    document.getElementById('settings-avatar-preview').src = avatarUrl;
-                    document.getElementById('settings-cover-preview').style.backgroundImage = `url('${coverUrl}')`;
-                }
-            } catch (err) {
-                console.error('Erro ao carregar configuracoes:', err);
-            }
-        }
-
-        function previewSettingsAvatar(e) {
-            const file = e.target.files[0];
-            if (file) {
-                settingsAvatarFile = file;
-                document.getElementById('settings-avatar-name').textContent = file.name;
-                
-                // Preview
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    document.getElementById('settings-avatar-preview').src = evt.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function previewSettingsCover(e) {
-            const file = e.target.files[0];
-            if (file) {
-                settingsCoverFile = file;
-                document.getElementById('settings-cover-name').textContent = file.name;
-                
-                // Preview
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    document.getElementById('settings-cover-preview').style.backgroundImage = `url('${evt.target.result}')`;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
         async function updateProfile() {
             const bio = document.getElementById('settings-bio').value;
             const email = document.getElementById('settings-email').value;
             const birthDate = document.getElementById('settings-birthdate').value;
             const isPrivate = document.getElementById('settings-private').checked;
-
-            const payload = {};
-            
-            if (bio !== originalSettings.bio) payload.bio = bio;
-            if (email !== originalSettings.email) payload.email = email;
-            if (birthDate !== originalSettings.birth_date) payload.birth_date = birthDate;
-            if (isPrivate !== originalSettings.is_private) payload.is_private = isPrivate;
-            
-            if (settingsAvatarFile) {
-                const avatarBase64 = await fileToBase64(settingsAvatarFile);
-                payload.avatar_base64 = avatarBase64;
-            }
-            
-            if (settingsCoverFile) {
-                const coverBase64 = await fileToBase64(settingsCoverFile);
-                payload.cover_base64 = coverBase64;
-            }
-            
-            // If nothing changed, show message
-            if (Object.keys(payload).length === 0) {
-                showToast(t('MSG_NO_CHANGES', 'Nenhuma alteracao detectada'), 'info');
-                return;
-            }
 
             try {
                 const res = await fetch(`${API_BASE}/api/profile`, {
@@ -2170,24 +1992,18 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        bio,
+                        email,
+                        birth_date: birthDate,
+                        is_private: isPrivate
+                    })
                 });
 
                 if (res.status === 401) return handleUnauthorized();
 
                 const msg = await getApiMessage(res, res.ok ? t('MSG_PROFILE_UPDATED', 'Perfil atualizado!') : t('ERR_UPDATE', 'Erro ao atualizar'));
                 showToast(msg, res.ok ? 'success' : 'error');
-                
-                if (res.ok) {
-                    // Reset file inputs
-                    settingsAvatarFile = null;
-                    settingsCoverFile = null;
-                    document.getElementById('settings-avatar-name').textContent = '';
-                    document.getElementById('settings-cover-name').textContent = '';
-                    
-                    // Reload settings to update original values
-                    loadCurrentUserSettings();
-                }
             } catch (err) {
                 showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
             }
@@ -2207,101 +2023,6 @@
                 showToast(msg, res.ok ? 'info' : 'error');
                 
                 if (res.ok) logout();
-            } catch (err) {
-                showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
-            }
-        }
-
-        // ===========================================
-        // ===========================================
-        async function loadAdminReports() {
-            if (myUserId !== 1) {
-                navigate('feed');
-                return;
-            }
-            
-            try {
-                const res = await fetch(`${API_BASE}/api/admin/reports`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                
-                if (res.status === 401) return handleUnauthorized();
-                if (res.status === 403) {
-                    showToast(t('ERR_NOT_ADMIN', 'Acesso negado'), 'error');
-                    navigate('feed');
-                    return;
-                }
-                
-                const reports = await res.json();
-                const container = document.getElementById('admin-reports-list');
-                
-                if (!reports || reports.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500">${t('LBL_NO_REPORTS', '> Nenhuma denuncia pendente')}</p>`;
-                    return;
-                }
-                
-                const typeLabels = {
-                    1: 'Usuario',
-                    2: 'Post',
-                    3: 'Comentario'
-                };
-                
-                const categoryLabels = {
-                    1: 'Spam',
-                    2: 'Conteudo Improprio',
-                    3: 'Assedio',
-                    4: 'Fake/Golpe',
-                    5: 'Outro'
-                };
-                
-                container.innerHTML = reports.map(r => `
-                    <div class="bg-dark-900 border border-dark-600 rounded-lg p-4">
-                        <div class="flex items-start justify-between mb-3">
-                            <div>
-                                <span class="text-yellow-400 font-bold">[${typeLabels[r.type] || 'Desconhecido'}]</span>
-                                <span class="text-gray-400 ml-2">ID: ${r.target_id}</span>
-                                <span class="text-gray-500 ml-2">• ${categoryLabels[r.category] || 'Outro'}</span>
-                            </div>
-                            <span class="text-xs text-gray-600">${r.created_at || ''}</span>
-                        </div>
-                        <p class="text-gray-300 mb-3">${escapeHtml(r.reason || 'Sem motivo especificado')}</p>
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs text-gray-500">Reportado por: @${escapeHtml(r.reporter_username || 'Anonimo')}</span>
-                            <div class="flex gap-2">
-                                <button onclick="handleReport(${r.id}, 'ignore')" class="px-3 py-1 border border-gray-600 text-gray-400 rounded text-sm hover:border-gray-400 transition-colors">Ignorar</button>
-                                <button onclick="handleReport(${r.id}, 'ban')" class="px-3 py-1 bg-red-600/20 border border-red-600 text-red-400 rounded text-sm hover:bg-red-600 hover:text-white transition-colors">Banir/Apagar</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (err) {
-                console.error('Erro ao carregar denuncias:', err);
-            }
-        }
-
-        async function handleReport(reportId, action) {
-            const confirmMsg = action === 'ban' 
-                ? t('CONFIRM_BAN', 'Tem certeza que deseja BANIR/APAGAR este conteudo?') 
-                : t('CONFIRM_IGNORE', 'Ignorar esta denuncia?');
-            
-            if (!confirm(confirmMsg)) return;
-            
-            try {
-                const res = await fetch(`${API_BASE}/api/admin/reports/${reportId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ action })
-                });
-                
-                const msg = await getApiMessage(res, res.ok ? t('MSG_REPORT_HANDLED', 'Denuncia processada!') : t('ERR_REPORT_HANDLE', 'Erro ao processar'));
-                showToast(msg, res.ok ? 'success' : 'error');
-                
-                if (res.ok) {
-                    loadAdminReports();
-                }
             } catch (err) {
                 showToast(t('ERR_CONNECTION', 'Erro de conexao'), 'error');
             }
@@ -2456,12 +2177,60 @@
             return div.innerHTML;
         }
 
+        // --- CORREÇÃO DE NAVEGAÇÃO (HISTORY API) ---
+        function showSection(sectionId, pushHistory = true) {
+            // 1. Esconde tudo
+            const sections = ['home', 'communities', 'friends', 'notifications', 'settings', 'profile', 'community-view'];
+            sections.forEach(id => {
+                const el = document.getElementById(id + '-section') || document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            // 2. Mostra a certa
+            const target = document.getElementById(sectionId + '-section') || document.getElementById(sectionId);
+            if (target) target.classList.remove('hidden');
+
+            // 3. Atualiza Botões do Menu (Estética)
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.id === `nav-${sectionId}`) {
+                    btn.classList.add('text-neon-cyan', 'border-neon-cyan');
+                    btn.classList.remove('text-gray-400', 'border-transparent');
+                } else {
+                    btn.classList.remove('text-neon-cyan', 'border-neon-cyan');
+                    btn.classList.add('text-gray-400', 'border-transparent');
+                }
+            });
+
+            // 4. Salva no Histórico do Navegador (O Pulo do Gato)
+            if (pushHistory) {
+                history.pushState({ section: sectionId }, '', `#${sectionId}`);
+            }
+        }
+
+        // Escuta o botão "Voltar" do navegador
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.section) {
+                showSection(event.state.section, false);
+            } else {
+                showSection('home', false);
+            }
+        });
+
+        // Escuta o botão "Voltar" do navegador
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.section) {
+                showSection(event.state.section, false);
+            } else {
+                showSection('feed', false);
+            }
+        });
+
         // Upload Base64 COMPLETO (sem .split)
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
+                reader.onload = () => resolve(reader.result); 
                 reader.onerror = reject;
             });
         }

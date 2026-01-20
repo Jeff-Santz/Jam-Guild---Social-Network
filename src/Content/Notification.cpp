@@ -22,38 +22,45 @@ namespace Content {
         return db->execute(sql);
     }
 
-    std::vector<crow::json::wvalue> Notification::getByUser(int userId) {
-        std::vector<crow::json::wvalue> list;
-        auto* db = Core::Database::getInstance();
-        auto* tr = Core::Translation::getInstance(); // Para traduzir na hora de ler
+        // Mantemos o std::vector para bater com o Notification.h
+        std::vector<crow::json::wvalue> Notification::getByUser(int userId) {
+            auto* db = Core::Database::getInstance();
+            std::vector<crow::json::wvalue> list;
 
-        std::string sql = "SELECT n.id, n.type, n.reference_id, n.content, n.creation_date, n.is_read, u.username "
-                          "FROM notifications n "
-                          "JOIN users u ON n.sender_id = u.id "
-                          "WHERE n.user_id = " + std::to_string(userId) + 
-                          " ORDER BY n.creation_date DESC LIMIT 50;";
+            // O SQL continua o mesmo (com o JOIN para pegar o nome)
+            std::string sql = "SELECT n.id, n.type, n.content, n.sender_id, n.is_read, n.created_at, "
+                            "n.post_id, n.community_id, "
+                            "u.username "  // <--- Coluna 8: O nome que faltava
+                            "FROM notifications n "
+                            "LEFT JOIN users u ON n.sender_id = u.id " // <--- JOIN mágico
+                            "WHERE n.user_id = " + std::to_string(userId) + 
+                            " ORDER BY n.id DESC LIMIT 50;";
 
-        auto callback = [&](int argc, char** argv, char** colNames) -> int {
-            crow::json::wvalue item;
-            item["id"] = std::stoi(argv[0]);
-            int type = std::stoi(argv[1]);
-            item["type"] = type;
-            item["ref_id"] = std::stoi(argv[2]);
-            
-            std::string key = argv[3] ? argv[3] : "";
-            item["text"] = tr->get(key); 
-            
-            item["date"] = argv[4] ? argv[4] : "";
-            item["is_read"] = std::stoi(argv[5]) == 1; 
-            item["sender"] = argv[6] ? argv[6] : "Unknown";
-            
-            list.push_back(item);
-            return 0;
-        };
+            db->query(sql, [&](int argc, char** argv, char** colNames) {
+                crow::json::wvalue item;
+                
+                item["id"] = std::stoi(argv[0]);
+                item["type"] = std::stoi(argv[1]);
+                item["content"] = argv[2] ? argv[2] : "";
+                item["sender_id"] = std::stoi(argv[3]);
+                item["read"] = (std::string(argv[4]) == "1");
+                item["created_at"] = argv[5] ? argv[5] : "";
+                
+                if (argv[6]) item["post_id"] = std::stoi(argv[6]); else item["post_id"] = 0;
+                if (argv[7]) item["community_id"] = std::stoi(argv[7]); else item["community_id"] = 0;
 
-        db->query(sql, callback);
-        return list;
-    }
+                // --- AQUI ESTÁ A CORREÇÃO ---
+                // Pegamos o username da tabela users e colocamos no JSON
+                item["sender_name"] = argv[8] ? argv[8] : "Unknown";
+                item["username"] = argv[8] ? argv[8] : "Unknown";
+
+                list.push_back(std::move(item));
+                return 0;
+            });
+
+            // Retorna o vetor puro (o Router transforma em JSON)
+            return list;
+        }
 
     void Notification::markAllAsRead(int userId) {
         auto* db = Core::Database::getInstance();
