@@ -22,6 +22,7 @@ namespace Core {
 
     public:
         static Translation* getInstance();
+        Language getLanguage() const { return currentLang; }
         void setLanguage(Language lang);
         std::string get(const std::string& key);
         std::map<std::string, std::string> getAll() { return messages; }

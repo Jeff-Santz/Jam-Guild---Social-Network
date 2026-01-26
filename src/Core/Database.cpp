@@ -7,16 +7,20 @@ namespace Core {
     Database* Database::instance = nullptr;
 
     Database::Database() {
-        // Instância do Tradutor
         auto* tr = Translation::getInstance();
-
-        int rc = sqlite3_open("social_graph.db", &db);
+        
+        // Adicionei flags de segurança na abertura
+        // SQLITE_OPEN_FULLMUTEX garante segurança extra em multi-thread
+        int rc = sqlite3_open_v2("social_graph.db", &db, 
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nullptr);
         
         if (rc) {
             std::cerr << tr->get("DB_ERROR") << ": " << sqlite3_errmsg(db) << std::endl;
         } else {
             std::cout << tr->get("DB_SUCCESS") << std::endl;
             sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nullptr, nullptr, nullptr);
+            // Melhora performance e segurança contra travamentos
+            sqlite3_exec(db, "PRAGMA journal_mode = WAL;", nullptr, nullptr, nullptr); 
         }
     }
 
@@ -32,6 +36,7 @@ namespace Core {
     }
 
     bool Database::execute(const std::string& sql) {
+        std::lock_guard<std::mutex> lock(dbMutex);
         char* zErrMsg = 0;
         int rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
@@ -44,8 +49,8 @@ namespace Core {
         return true;
     }
 
-    // --- A FUNÇÃO QUE ESTAVA FALTANDO E CAUSOU O ERRO ---
     bool Database::query(const std::string& sql, QueryCallback callback) {
+        std::lock_guard<std::mutex> lock(dbMutex);
         char* zErrMsg = 0;
         
         auto c_callback = [](void* data, int argc, char** argv, char** azColName) -> int {
@@ -65,6 +70,20 @@ namespace Core {
     }
 
     int Database::getLastInsertId() {
+        std::lock_guard<std::mutex> lock(dbMutex);
         return (int)sqlite3_last_insert_rowid(db);
+    }
+
+    std::string Database::escape(const std::string& input) {
+        std::string output;
+        output.reserve(input.size()); // Otimização
+        for (char c : input) {
+            if (c == '\'') {
+                output += "''"; 
+            } else {
+                output += c;
+            }
+        }
+        return output;
     }
 }

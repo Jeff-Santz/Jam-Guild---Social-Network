@@ -7,15 +7,15 @@ namespace Core {
         auto* db = Database::getInstance();
         std::string date = Utils::getCurrentDateTime();
         
-        // Insere no log
-        std::string sql = "INSERT INTO system_logs (user_id, action, details, date) VALUES (" 
-                          + std::to_string(userId) + ", '" 
+        std::string safeDetails = Core::Database::escape(details);
+
+        std::string sql = "INSERT INTO system_logs ... VALUES (..., '" 
                           + action + "', '" 
-                          + details + "', '" 
+                          + safeDetails + "', '" 
                           + date + "');";
         db->execute(sql);
     }
-
+    
     std::vector<crow::json::wvalue> Logger::getUserLogs(int userId) {
         std::vector<crow::json::wvalue> logs;
         auto* db = Database::getInstance();

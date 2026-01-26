@@ -138,10 +138,7 @@ namespace Core {
     std::string Utils::saveBase64Image(const std::string &base64Data, int postId)
     {
         std::string data = base64Data;
-        std::string extension = ".jpg"; // Padrão
-
-        // 1. Tentar descobrir se é imagem ou vídeo pelo cabeçalho
-        // Formato esperado: "data:image/png;base64,..." ou "data:video/mp4;base64,..."
+        std::string extension = ".jpg"; 
         size_t comma = data.find(",");
         if (comma != std::string::npos)
         {
@@ -151,18 +148,14 @@ namespace Core {
             else if (header.find("png") != std::string::npos)
                 extension = ".png";
 
-            // Remove o cabeçalho para salvar só os dados
             data = data.substr(comma + 1);
         }
 
-        // 2. CHECK DE SEGURANÇA (Aumentado para 50MB de arquivo real)
-        // 50MB * 1.37 (overhead) = ~68MB. Vamos por 70 Milhões de caracteres.
         if (data.size() > 70000000)
         {
             return ""; // Retorna vazio = Erro (Muito grande)
         }
 
-        // 3. Decodificação (O mesmo código de antes)
         int in_len = data.size();
         int i = 0, j = 0, in_ = 0;
         unsigned char char_array_4[4], char_array_3[3];
@@ -197,7 +190,6 @@ namespace Core {
                 ret.push_back(char_array_3[j]);
         }
 
-        // 4. Salvar com a extensão correta
         std::string filename = "uploads/post_" + std::to_string(postId) + extension;
         std::ofstream file(filename, std::ios::binary);
         file.write(reinterpret_cast<const char *>(&ret[0]), ret.size());
@@ -205,4 +197,17 @@ namespace Core {
 
         return filename;
     }
+    std::string Utils::sanitize(const std::string& input) {
+        std::string output;
+        output.reserve(input.size()); 
+        for (char c : input) {
+            if (c == '\'') {
+                output += "''"; 
+            } else {
+                output += c;
+            }
+        }
+        return output;
+    }
+
 }

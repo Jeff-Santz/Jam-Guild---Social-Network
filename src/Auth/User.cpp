@@ -88,19 +88,27 @@ namespace Auth {
             bool hasAt = (this->email.find('@') != std::string::npos);
             this->isVerified = hasAt;
 
+            // --- PROTEÇÃO SQL INJECTION ---
+            std::string safeUser = Core::Database::escape(this->username);
+            std::string safeEmail = Core::Database::escape(this->email);
+            std::string safeBio = Core::Database::escape(this->bio);
+            std::string safeCity = Core::Database::escape(this->city);
+            std::string safeState = Core::Database::escape(this->state);
+            // -----------------------------
+
             std::string sql = "INSERT INTO users (username, email, password_hash, bio, language, birth_date, city, state, is_private, is_verified, creation_date) VALUES ('" +
-                this->username + "', '" + 
-                this->email + "', '" + 
+                safeUser + "', '" +  
+                safeEmail + "', '" +  
                 this->passwordHash + "', '" + 
-                this->bio + "', '" + 
+                safeBio + "', '" +    
                 this->language + "', '" +
                 this->birthDate + "', '" +
-                this->city + "', '" +    
-                this->state + "', " +   
+                safeCity + "', '" +   
+                safeState + "', " +   
                 (this->isPrivate ? "1" : "0") + ", " +
                 (this->isVerified ? "1" : "0") + ", '" + 
-                this->creationDate + "');"; 
-
+                this->creationDate + "');";
+            
             if (db->execute(sql)) {
                 this->id = db->getLastInsertId();
                 return true;
@@ -110,25 +118,33 @@ namespace Auth {
     }
 
     bool User::update() {
-        if (this->id == -1) return false; 
+        if (this->id == -1) return false;
         auto* db = Core::Database::getInstance();
         
+        // --- PROTEÇÃO ---
+        std::string safeBio = Core::Database::escape(this->bio);
+        std::string safeCity = Core::Database::escape(this->city);
+        std::string safeState = Core::Database::escape(this->state);
+        std::string safeEmail = Core::Database::escape(this->email);
+        // ----------------
+
         std::string sql = "UPDATE users SET "
-                        "bio = '" + this->bio + "', "
+                        "bio = '" + safeBio + "', "
                         "language = '" + this->language + "', "
                         "birth_date = '" + this->birthDate + "', "
-                        "city = '" + this->city + "', "      
-                        "state = '" + this->state + "', "    
-                        "email = '" + this->email + "', "
+                        "city = '" + safeCity + "', "      
+                        "state = '" + safeState + "', "    
+                        "email = '" + safeEmail + "', "
                         "is_verified = " + (this->isVerified ? "1" : "0") + " " 
                         "WHERE id = " + std::to_string(this->id) + ";";
-
         return db->execute(sql);
     }
 
-bool User::findByEmail(const std::string& email, User& outUser) {
+    bool User::findByEmail(const std::string& email, User& outUser) {
         auto* db = Core::Database::getInstance();
-        std::string sql = "SELECT id, username, email, password_hash, bio, language, creation_date, birth_date, is_private, is_verified, city, state FROM users WHERE email = '" + email + "';";
+        std::string safeEmail = Core::Database::escape(email); 
+    
+        std::string sql = "SELECT ... FROM users WHERE email = '" + safeEmail + "';";
         bool found = false;
 
         auto callback = [&](int argc, char** argv, char** colNames) -> int {
@@ -276,7 +292,8 @@ bool User::findByEmail(const std::string& email, User& outUser) {
         auto* db = Core::Database::getInstance();
 
         // O operador LIKE %texto% busca em qualquer parte do nome
-        std::string sql = "SELECT id, username, email, bio FROM users WHERE username LIKE '%" + queryStr + "%';";
+        std::string safeQuery = Core::Database::escape(queryStr);
+        std::string sql = "SELECT ... FROM users WHERE username LIKE '%" + safeQuery + "%';";
 
         auto callback = [&](int argc, char** argv, char** colNames) -> int {
             User u;

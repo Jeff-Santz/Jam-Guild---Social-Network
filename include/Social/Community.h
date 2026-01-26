@@ -22,6 +22,8 @@ namespace Social {
         bool isPrivate;
         std::string city;   
         std::string state;  
+        std::string avatarUrl;
+        std::string coverUrl;
 
     public:
         Community();
@@ -44,6 +46,8 @@ namespace Social {
         void setPrivate(bool status) { isPrivate = status; }
         void setCity(const std::string& c) { city = c; }
         void setState(const std::string& s) { state = s; }
+        void setAvatarUrl(const std::string& url) { avatarUrl = url; }
+        void setCoverUrl(const std::string& url) { coverUrl = url; }
         static bool addMember(int communityId, int userId, CommunityRole role);
 
         // Getters
@@ -55,6 +59,8 @@ namespace Social {
         int getOwnerId() const { return ownerId; }
         std::string getCity() const { return city; }
         std::string getState() const { return state; }
+        std::string getAvatarUrl() const { return avatarUrl; }
+        std::string getCoverUrl() const {return coverUrl; }
         static std::vector<int> getMembers(int communityId);
         static std::vector<Auth::User> getRichMembers(int communityId);
         static std::vector<Auth::User> getPendingRequests(int communityId);

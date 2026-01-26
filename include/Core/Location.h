@@ -12,10 +12,12 @@ namespace Core {
         static std::string normalize(const std::string& str);
 
     public:
-        static std::vector<std::string> getStates();
-        static std::vector<std::string> getCities(const std::string& state);
+        // Função que popula o banco na primeira vez
+        static void seed();
 
-        // Valida se a combinação existe (Case Insensitive!)
+        // Funções que agora consultam o Banco
+        static std::vector<std::string> getStates(bool isEnglish = false);
+        static std::vector<std::string> getCities(const std::string& state);
         static bool isValid(const std::string& city, const std::string& state);
     };
 }

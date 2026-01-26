@@ -1,6 +1,7 @@
 #include "API/Router.h"
 #include "Core/Database.h"
 #include "Core/Translation.h"
+#include "Core/Location.h"
 #include "Core/Utils.h"
 #include <iostream>
 
@@ -9,6 +10,8 @@ int main() {
 
     // 1. Inicializa o Banco de Dados
     auto* db = Core::Database::getInstance();
+
+    db->execute("PRAGMA foreign_keys = ON;");
     
     // USERS (Com Geolocalização)
     db->execute("CREATE TABLE IF NOT EXISTS users ("
@@ -20,10 +23,13 @@ int main() {
                 "birth_date TEXT, "
                 "city TEXT, "       
                 "state TEXT, "     
+                "avatar_url TEXT DEFAULT '', " 
+                "cover_url TEXT DEFAULT '', " 
                 "is_private INTEGER DEFAULT 0, "
                 "is_verified INTEGER DEFAULT 0, "
-                "language TEXT DEFAULT 'en_US', "
-                "creation_date TEXT);"); 
+                "role INTEGER DEFAULT 0, "    
+                "language TEXT DEFAULT 'pt_BR', "
+                "creation_date TEXT);");
 
     // POSTS (Com Mídia)
     db->execute("CREATE TABLE IF NOT EXISTS posts ("
@@ -42,16 +48,28 @@ int main() {
     db->execute("CREATE TABLE IF NOT EXISTS friendships (user_id_1 INTEGER, user_id_2 INTEGER, status INTEGER DEFAULT 0, since_date TEXT, PRIMARY KEY (user_id_1, user_id_2), FOREIGN KEY(user_id_1) REFERENCES users(id), FOREIGN KEY(user_id_2) REFERENCES users(id));");
 
     // COMMENTS
+    // 1. Tabela de Comentários (Agora com Mídia e Pai)
     db->execute("CREATE TABLE IF NOT EXISTS comments ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 "post_id INTEGER, "
                 "author_id INTEGER, "
-                "parent_id INTEGER DEFAULT NULL, "
+                "parent_id INTEGER DEFAULT -1, " 
                 "content TEXT, "
+                "media_url TEXT DEFAULT '', "   
+                "media_type TEXT DEFAULT '', "   
                 "creation_date TEXT, "
                 "FOREIGN KEY(post_id) REFERENCES posts(id), "
-                "FOREIGN KEY(author_id) REFERENCES users(id), "
-                "FOREIGN KEY(parent_id) REFERENCES comments(id));");
+                "FOREIGN KEY(author_id) REFERENCES users(id));");
+
+    // 2. Tabela de Likes Específica para Comentários
+    // (Separada de post_likes para não bagunçar a lógica)
+    db->execute("CREATE TABLE IF NOT EXISTS comment_likes ("
+                "user_id INTEGER, "
+                "comment_id INTEGER, "
+                "date TEXT, "
+                "PRIMARY KEY (user_id, comment_id), "
+                "FOREIGN KEY(user_id) REFERENCES users(id), "
+                "FOREIGN KEY(comment_id) REFERENCES comments(id));");
 
     // LIKES 
     db->execute("CREATE TABLE IF NOT EXISTS likes ("
@@ -72,29 +90,34 @@ int main() {
                 "date TEXT, "
                 "FOREIGN KEY(user_id) REFERENCES users(id));");
 
-    // NOTIFICAÇÕES
+    // NOTIFICATIONS
+    // Se o post for deletado, a notificação some sozinha (ON DELETE CASCADE)
     db->execute("CREATE TABLE IF NOT EXISTS notifications ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                "user_id INTEGER, "     
-                "sender_id INTEGER, "    
-                "type INTEGER, "         
-                "reference_id INTEGER, " 
-                "content TEXT, "         
+                "user_id INTEGER, "
+                "sender_id INTEGER, "
+                "type INTEGER, "        
+                "post_id INTEGER DEFAULT -1, "      
+                "community_id INTEGER DEFAULT -1, "  
+                "content TEXT, "
                 "is_read INTEGER DEFAULT 0, "
-                "creation_date TEXT, "
-                "FOREIGN KEY(user_id) REFERENCES users(id));");
+                "created_at TEXT, "     
+                "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE, "
+                "FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE, "
+                "FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE);");
 
     // COMUNIDADES (Com Geolocalização)
     db->execute("CREATE TABLE IF NOT EXISTS communities ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "owner_id INTEGER, "
-                    "name TEXT, "
-                    "description TEXT, "
-                    "city TEXT, "      
-                    "state TEXT, "    
-                    "is_private INTEGER, "
-                    "creation_date TEXT, "
-                    "FOREIGN KEY(owner_id) REFERENCES users(id));");
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "owner_id INTEGER, "
+                "name TEXT, "
+                "description TEXT, "
+                "cover_url TEXT DEFAULT '', " 
+                "city TEXT, "       
+                "state TEXT, "      
+                "is_private INTEGER DEFAULT 0, "
+                "creation_date TEXT, "
+                "FOREIGN KEY(owner_id) REFERENCES users(id));");
     
     // MEMBROS COMUNIDADE
     db->execute("CREATE TABLE IF NOT EXISTS community_members ("
@@ -131,9 +154,22 @@ int main() {
                 "status INTEGER DEFAULT 0, "
                 "creation_date TEXT, "
                 "FOREIGN KEY(reporter_id) REFERENCES users(id));");
+    
+    // --- NOVO: TABELAS GEOGRÁFICAS ---
+    db->execute("CREATE TABLE IF NOT EXISTS states ("
+                "code TEXT PRIMARY KEY, "   
+                "name TEXT, "            
+                "country TEXT);");        
 
-    // 2. Configura Tradução
+    db->execute("CREATE TABLE IF NOT EXISTS cities ("
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "name TEXT, "
+                "state_code TEXT, "
+                "FOREIGN KEY(state_code) REFERENCES states(code));");
+
+    // 2. Configura Tradução e Localizações
     Core::Translation::getInstance()->setLanguage(Core::Language::PT_BR);
+    Core::Location::seed();
 
     // 3. Inicia Servidor (TIPO CORRETO AGORA: SimpleApp)
     crow::SimpleApp app;
@@ -142,37 +178,94 @@ int main() {
     API::Router::setupRoutes(app);
 
     // --- ROTA DA HOME (SERVE O FRONTEND) ---
+    // ROTA PRINCIPAL
     CROW_ROUTE(app, "/")
-    ([](const crow::request&, crow::response& res){
-        // Tenta ler o arquivo index.html da pasta frontend
-        std::ifstream file("frontend/index.html");
-        if (file.is_open()) {
-            std::ostringstream oss;
-            oss << file.rdbuf();
-            res.write(oss.str());
-            res.add_header("Content-Type", "text/html; charset=utf-8");
-            res.end();
+    ([](){
+        std::vector<std::string> paths = {
+            "index.html", 
+            "frontend/index.html",
+            "../frontend/index.html",
+            "../../frontend/index.html"
+        };
+
+        std::ifstream in;
+        std::string foundPath = "";
+
+        for (const auto& path : paths) {
+            // DEBUG: Mostra onde está procurando
+            std::cout << ">> Tentando abrir: " << path << "... "; 
+            
+            in.open(path);
+            if (in.is_open()) {
+                std::cout << "ENCONTRADO!" << std::endl; // <--- Dedura
+                foundPath = path;
+                break;
+            } else {
+                std::cout << "X" << std::endl;
+            }
+            in.clear();
+        }
+
+        if (in.is_open()) {
+            std::ostringstream contents;
+            contents << in.rdbuf();
+            in.close();
+            
+            std::string html = contents.str();
+            
+            // DEBUG: Verifica se o arquivo está vazio
+            if (html.empty()) {
+                 std::cout << ">> ALERTA: O arquivo " << foundPath << " esta VAZIO (0 bytes)!" << std::endl;
+                 return crow::response(500, "ERRO: O arquivo index.html existe mas esta vazio.");
+            }
+
+            return crow::response(html);
         } else {
-            // Se não achar, avisa o Jeff
-            res.code = 404;
-            res.write("<h1>Erro 404</h1><p>Arquivo frontend/index.html nao encontrado.</p>");
-            res.end();
+            return crow::response(404, "ERRO 404: Index.html nao encontrado.");
         }
     });
 
     // -----------------------------------------------------------------------
-    // CORS MANUAL: Rota OPTIONS (O "Pre-flight")
-    // O navegador pergunta aqui se pode enviar dados. Respondemos SIM (204).
+    // CORS MANUAL: Rotas OPTIONS (Pre-flight)
+    // Precisamos cobrir todos os níveis de profundidade da API
     // -----------------------------------------------------------------------
-    CROW_ROUTE(app, "/<path>")
-    .methods(crow::HTTPMethod::Options)
-    ([](const crow::request&, crow::response& res, std::string){
+    auto handleOptions = [](const crow::request&, crow::response& res){
         res.add_header("Access-Control-Allow-Origin", "*");
-        res.add_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+        res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        res.code = 204; // No Content
+        res.code = 204; 
         res.end();
-    });
+    };
+
+    // Nível 1: /health
+    CROW_ROUTE(app, "/<path>").methods(crow::HTTPMethod::Options)(
+        [](const crow::request&, crow::response& res, std::string){ 
+            res.add_header("Access-Control-Allow-Origin", "*");
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            res.code = 204; res.end(); 
+        }
+    );
+    
+    // Nível 2: /api/login, /api/signup, /api/states
+    CROW_ROUTE(app, "/api/<path>").methods(crow::HTTPMethod::Options)(
+        [](const crow::request&, crow::response& res, std::string){ 
+            res.add_header("Access-Control-Allow-Origin", "*");
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            res.code = 204; res.end(); 
+        }
+    );
+
+    // Nível 3: /api/friends/request, /api/communities/leave
+    CROW_ROUTE(app, "/api/<path>/<path>").methods(crow::HTTPMethod::Options)(
+        [](const crow::request&, crow::response& res, std::string, std::string){ 
+            res.add_header("Access-Control-Allow-Origin", "*");
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            res.code = 204; res.end(); 
+        }
+    );
 
     // -----------------------------------------------------------------------
     // ROTA DE ARQUIVOS ESTÁTICOS (UPLOADS) + CORS

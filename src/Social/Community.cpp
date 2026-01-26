@@ -14,12 +14,19 @@ namespace Social {
         auto* db = Core::Database::getInstance();
         std::string date = Core::Utils::getCurrentDateTime();
 
+        // --- PROTEÇÃO ---
+        std::string safeName = Core::Database::escape(this->name);
+        std::string safeDesc = Core::Database::escape(this->description);
+        std::string safeCity = Core::Database::escape(this->city);
+        std::string safeState = Core::Database::escape(this->state);
+        // ----------------
+
         std::string sql = "INSERT INTO communities (owner_id, name, description, city, state, is_private, creation_date) VALUES (" +
             std::to_string(this->ownerId) + ", '" + 
-            this->name + "', '" + 
-            this->description + "', '" + 
-            this->city + "', '" +   
-            this->state + "', " +    
+            safeName + "', '" + 
+            safeDesc + "', '" + 
+            safeCity + "', '" +   
+            safeState + "', " +    
             (this->isPrivate ? "1" : "0") + ", '" + 
             date + "');";
 
@@ -33,10 +40,14 @@ namespace Social {
     bool Community::update() {
         if (this->id == -1) return false;
         auto* db = Core::Database::getInstance();
+
+        // --- PROTEÇÃO ---
+        std::string safeName = Core::Database::escape(this->name);
+        std::string safeDesc = Core::Database::escape(this->description);
         
         std::string sql = "UPDATE communities SET "
-                        "name = '" + this->name + "', "
-                        "description = '" + this->description + "', "
+                        "name = '" + safeName + "', "
+                        "description = '" + safeDesc + "', "
                         "is_private = " + std::to_string(this->isPrivate ? 1 : 0) +
                         " WHERE id = " + std::to_string(this->id) + ";";
 
@@ -261,10 +272,12 @@ namespace Social {
         std::vector<Auth::User> results;
         auto* db = Core::Database::getInstance();
 
+        std::string safeQuery = Core::Database::escape(queryStr);
+
         std::string sql = "SELECT u.id, u.username, u.bio FROM users u "
                         "JOIN community_members m ON u.id = m.user_id "
                         "WHERE m.community_id = " + std::to_string(communityId) + 
-                        " AND u.username LIKE '%" + queryStr + "%';";
+                        " AND u.username LIKE '%" + safeQuery + "%';";
 
         auto callback = [&](int argc, char** argv, char**) -> int {
             Auth::User u;

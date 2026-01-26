@@ -19,6 +19,7 @@ namespace Auth {
         std::string state;  
         std::string avatarUrl;
         std::string coverUrl;
+        int role = 0;
         bool isPrivate = false;
         bool isVerified = false;
 
@@ -60,6 +61,7 @@ namespace Auth {
         void setState(const std::string& s) { state = s; }
         void setAvatarUrl(const std::string& url) { avatarUrl = url; }
         void setCoverUrl(const std::string& url) { coverUrl = url; }
+        void setRole(const int r) { role = r; }
 
         // Getters
         std::string getUsername() const { return username; }
@@ -73,6 +75,7 @@ namespace Auth {
         std::string getCoverUrl() const {return coverUrl; }
         bool getPrivate() const { return isPrivate; }
         bool getVerified() const { return isVerified; }
+        int getRole() const { return role; }
         std::string getTableName() const override { return "users"; }
         std::vector<User> getFriends();
         std::vector<User> getPendingRequests();

@@ -8,18 +8,24 @@ namespace Content {
 
     bool Like::toggle() {
         auto* db = Core::Database::getInstance();
-        bool wasAdded = false; // Declaramos a variável aqui para controlar o estado
+        bool wasAdded = false; 
 
         if (Like::hasUserLiked(this->postId, this->userId)) {
-            // Unlike
+            //Remove Like
             std::string sql = "DELETE FROM likes WHERE post_id = " + std::to_string(this->postId) + 
                             " AND user_id = " + std::to_string(this->userId) + ";";
-            
             db->execute(sql);
+            //Remove Notif
+            std::string sqlNotif = "DELETE FROM notifications WHERE sender_id = " + std::to_string(this->userId) + 
+                                " AND post_id = " + std::to_string(this->postId) + 
+                                " AND type = " + std::to_string(Notification::LIKE) + ";";
+            db->execute(sqlNotif);
+
             wasAdded = false; 
-        } else {
-            // Like
+
+        } else { 
             this->date = Core::Utils::getCurrentDateTime();
+            //Add Like
             std::string sql = "INSERT INTO likes (post_id, user_id, date) VALUES (" + 
                             std::to_string(this->postId) + ", " + 
                             std::to_string(this->userId) + ", '" + 
@@ -28,16 +34,15 @@ namespace Content {
             db->execute(sql); 
             wasAdded = true;
 
-            // Notification
+            //Add Notif
             int ownerId = -1;
             auto callback = [&](int, char** argv, char**) { ownerId = std::stoi(argv[0]); return 0; };
             db->query("SELECT author_id FROM posts WHERE id=" + std::to_string(this->postId), callback);
 
-            if (ownerId != -1) {
+            if (ownerId != -1 && ownerId != this->userId) { 
                 Notification::create(ownerId, this->userId, Notification::LIKE, this->postId, "NOTIF_LIKE");
             }
 
-            // Learning logic
             if (wasAdded) {
                 std::string tags;
                 db->query("SELECT tags FROM posts WHERE id = " + std::to_string(this->postId), [&](int, char** argv, char**) {
@@ -54,7 +59,7 @@ namespace Content {
             }
         }
         
-        return wasAdded; // Retorna true se adicionou, false se removeu
+        return wasAdded;
     }
 
     int Like::getCount(int postId) {

@@ -15,18 +15,21 @@ namespace Content {
 
 bool Post::save() {
     auto* db = Core::Database::getInstance();
-    
     if (this->id == -1) {
-        // Se communityId for -1, inserimos NULL no banco
         std::string commSql = (this->communityId == -1) ? "NULL" : std::to_string(this->communityId);
 
-        // Query atualizada com MEDIA_URL e MEDIA_TYPE
+        // --- PROTEÇÃO ---
+        std::string safeContent = Core::Database::escape(this->content);
+        std::string safeTags = Core::Database::escape(this->tags);
+        std::string safeMediaUrl = Core::Database::escape(this->mediaUrl); // Vai que o nome do arquivo tem aspas
+        // ----------------
+
         std::string sql = "INSERT INTO posts (author_id, community_id, content, tags, media_url, media_type, creation_date) VALUES (" +
             std::to_string(this->authorId) + ", " + 
-            (this->communityId == -1 ? "NULL" : std::to_string(this->communityId)) + ", '" + 
-            this->content + "', '" + 
-            this->tags + "', '" + 
-            this->mediaUrl + "', '" +   
+            commSql + ", '" + 
+            safeContent + "', '" + 
+            safeTags + "', '" +     
+            safeMediaUrl + "', '" + 
             this->mediaType + "', '" +  
             this->creationDate + "');";
 

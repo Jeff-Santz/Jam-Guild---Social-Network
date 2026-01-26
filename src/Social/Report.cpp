@@ -16,13 +16,15 @@ namespace Social {
         auto* db = Core::Database::getInstance();
         this->creationDate = Core::Utils::getCurrentDateTime();
 
+        std::string safeReason = Core::Database::escape(this->reason);
+
         // INCLUÍDO O CAMPO CATEGORY
         std::string sql = "INSERT INTO reports (reporter_id, target_id, target_type, category, reason, status, creation_date) VALUES (" +
             std::to_string(this->reporterId) + ", " + 
             std::to_string(this->targetId) + ", " + 
             std::to_string(this->targetType) + ", " + 
-            std::to_string(this->category) + ", '" + // <--- AQUI
-            this->reason + "', 0, '" + 
+            std::to_string(this->category) + ", '" + 
+            safeReason + "', 0, '" + 
             this->creationDate + "');";
 
         if (db->execute(sql)) {
